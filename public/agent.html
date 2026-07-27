@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Support Agent Dashboard</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 700px;
+        margin: 30px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      .step {
+        margin-bottom: 20px;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+      button {
+        padding: 10px 18px;
+        margin: 4px 4px 4px 0;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      video {
+        width: 100%;
+        background: #111;
+        margin-top: 8px;
+        border-radius: 6px;
+      }
+      #codeDisplay {
+        font-size: 32px;
+        font-weight: bold;
+        letter-spacing: 4px;
+        margin: 12px 0;
+      }
+      #log {
+        font-family: monospace;
+        font-size: 11px;
+        background: #f4f4f4;
+        padding: 8px;
+        max-height: 160px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Support Agent Dashboard</h1>
+
+    <div class="step">
+      <button onclick="createSession()">New Session</button>
+      <div id="codeDisplay"></div>
+      <div id="status"></div>
+    </div>
+
+    <div class="step">
+      <strong>User's Screen</strong>
+      <button onclick="goFullscreen()">Fullscreen</button>
+      <video
+        id="remoteVideo"
+        autoplay
+        playsinline
+        ondblclick="goFullscreen()"
+      ></video>
+    </div>
+
+    <div class="step">
+      <strong>Log</strong>
+      <div id="log"></div>
+    </div>
+
+    <script>
+      let pc, ws;
+
+      function log(msg) {
+        const el = document.getElementById("log");
+        el.textContent += msg + "\n";
+        el.scrollTop = el.scrollHeight;
+        console.log(msg);
+      }
+
+      async function createSession() {
+        // Guard against clicking "New Session" while a previous one is still live
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+
+        const res = await fetch("/api/create-session", { method: "POST" });
+        const data = await res.json();
+        const code = data.code;
+
+        document.getElementById("codeDisplay").textContent = code;
+        document.getElementById("status").textContent =
+          "Read this code to the user, then wait for them to connect...";
+        log("Session created: " + code);
+
+        connectWebSocket(code);
+      }
+
+      function connectWebSocket(code) {
+        const wsUrl = `ws://${location.host}/ws?code=${code}&role=agent`;
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () =>
+          log("Connected to signaling server, waiting for user...");
+        ws.onclose = () => log("Signaling connection closed");
+        ws.onerror = (e) => log("WebSocket error: " + e.message);
+
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            send({ type: "ice-candidate", candidate: event.candidate });
+          } else {
+            log("ICE gathering complete");
+          }
+        };
+
+        pc.ontrack = (event) => {
+          log("User's screen received!");
+          document.getElementById("status").textContent =
+            "Connected — viewing user's screen";
+          document.getElementById("remoteVideo").srcObject = event.streams[0];
+        };
+
+        pc.onconnectionstatechange = () => {
+          log("Connection state: " + pc.connectionState);
+
+          // Fallback in case the explicit 'stop' message never arrives
+          // (e.g. the user's network dropped instead of a clean stop-sharing click).
+          if (
+            ["disconnected", "failed", "closed"].includes(pc.connectionState)
+          ) {
+            resetView("User disconnected.");
+          }
+        };
+
+        ws.onmessage = async (event) => {
+          const msg = JSON.parse(event.data);
+
+          if (msg.type === "offer") {
+            log("Received offer from user");
+            await pc.setRemoteDescription(msg.offer);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            send({ type: "answer", answer: pc.localDescription });
+            log("Sent answer");
+          } else if (msg.type === "ice-candidate") {
+            try {
+              await pc.addIceCandidate(msg.candidate);
+            } catch (e) {
+              log("Failed to add ICE candidate: " + e.message);
+            }
+          } else if (msg.type === "stop") {
+            log("User stopped sharing");
+            resetView("User ended the session.");
+          }
+        };
+      }
+
+      function resetView(statusText) {
+        document.getElementById("remoteVideo").srcObject = null;
+        document.getElementById("status").textContent = statusText;
+        document.getElementById("codeDisplay").textContent = "";
+
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+      }
+
+      function goFullscreen() {
+        const video = document.getElementById("remoteVideo");
+        if (video.requestFullscreen) {
+          video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+          // Safari
+          video.webkitRequestFullscreen();
+        }
+      }
+
+      function send(obj) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(obj));
+        }
+      }
+    </script>
+  </body>
+</html>

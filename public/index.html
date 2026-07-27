@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Support - Share Your Screen</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 0 16px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      input[type="text"] {
+        font-size: 24px;
+        letter-spacing: 4px;
+        padding: 10px;
+        width: 200px;
+        text-align: center;
+      }
+      button {
+        padding: 12px 24px;
+        margin-top: 12px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      video {
+        width: 100%;
+        background: #111;
+        margin-top: 16px;
+        border-radius: 6px;
+      }
+      #status {
+        margin-top: 12px;
+        color: #555;
+      }
+      #log {
+        font-family: monospace;
+        font-size: 11px;
+        background: #f4f4f4;
+        padding: 8px;
+        max-height: 120px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        text-align: left;
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Company Support</h1>
+    <p>Enter the code your support agent gave you:</p>
+
+    <input type="text" id="codeInput" maxlength="6" placeholder="000000" />
+    <br />
+    <button onclick="connect()">Connect</button>
+
+    <div id="status"></div>
+    <video id="localVideo" autoplay muted playsinline></video>
+
+    <div id="log"></div>
+
+    <script>
+      let pc, ws;
+
+      function log(msg) {
+        const el = document.getElementById("log");
+        el.textContent += msg + "\n";
+        el.scrollTop = el.scrollHeight;
+        console.log(msg);
+      }
+
+      async function connect() {
+        const code = document.getElementById("codeInput").value.trim();
+        if (code.length !== 6) {
+          document.getElementById("status").textContent =
+            "Please enter the 6-digit code.";
+          return;
+        }
+
+        document.getElementById("status").textContent = "Connecting...";
+
+        const wsUrl = `ws://${location.host}/ws?code=${code}&role=user`;
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = async () => {
+          log("Connected to signaling server");
+          document.getElementById("status").textContent =
+            "Connected. Starting screen share...";
+          await startShare();
+        };
+        ws.onclose = () => log("Signaling connection closed");
+        ws.onerror = (e) => {
+          log("WebSocket error");
+          document.getElementById("status").textContent =
+            "Could not connect. Check the code and try again.";
+        };
+
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            send({ type: "ice-candidate", candidate: event.candidate });
+          } else {
+            log("ICE gathering complete");
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          log("Connection state: " + pc.connectionState);
+          if (pc.connectionState === "connected") {
+            document.getElementById("status").textContent =
+              "Support agent is now viewing your screen.";
+          }
+        };
+
+        ws.onmessage = async (event) => {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "answer") {
+            log("Received answer from agent");
+            await pc.setRemoteDescription(msg.answer);
+          } else if (msg.type === "ice-candidate") {
+            try {
+              await pc.addIceCandidate(msg.candidate);
+            } catch (e) {
+              log("Failed to add ICE candidate: " + e.message);
+            }
+          }
+        };
+      }
+
+      async function startShare() {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: { ideal: 8, max: 12 } },
+        });
+        const track = stream.getVideoTracks()[0];
+        if ("contentHint" in track) track.contentHint = "detail";
+
+        document.getElementById("localVideo").srcObject = stream;
+        stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        log("Screen share started");
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        send({ type: "offer", offer: pc.localDescription });
+        log("Sent offer to agent");
+      }
+
+      function send(obj) {
+        ws.send(JSON.stringify(obj));
+      }
+    </script>
+  </body>
+</html>
