@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -147,5 +148,9 @@ func main() {
 	http.HandleFunc("/ws", handleWS)
 
 	log.Println("server listening on :8080")
-	http.ListenAndServe(":8080", nil)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // fallback for local dev
+	}
+	http.ListenAndServe(":"+port, nil)
 }
