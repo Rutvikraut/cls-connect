@@ -83,7 +83,8 @@
 
         document.getElementById("status").textContent = "Connecting...";
 
-        const wsUrl = `ws://${location.host}/ws?code=${code}&role=user`;
+        const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=user`;
         ws = new WebSocket(wsUrl);
 
         ws.onopen = async () => {
