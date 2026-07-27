@@ -2,79 +2,72 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Support Agent Dashboard</title>
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        max-width: 700px;
-        margin: 30px auto;
-        padding: 0 16px;
-      }
-      h1 {
-        font-size: 20px;
-      }
-      .step {
-        margin-bottom: 20px;
-        padding: 12px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-      }
-      button {
-        padding: 10px 18px;
-        margin: 4px 4px 4px 0;
-        cursor: pointer;
-        font-size: 14px;
-      }
-      video {
-        width: 100%;
-        background: #111;
-        margin-top: 8px;
-        border-radius: 6px;
-      }
-      #codeDisplay {
-        font-size: 32px;
-        font-weight: bold;
-        letter-spacing: 4px;
-        margin: 12px 0;
-      }
-      #log {
-        font-family: monospace;
-        font-size: 11px;
-        background: #f4f4f4;
-        padding: 8px;
-        max-height: 160px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-      }
-    </style>
+    <title>Screen Support - Agent Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Support Agent Dashboard</h1>
-
-    <div class="step">
-      <button onclick="createSession()">New Session</button>
-      <div id="codeDisplay"></div>
-      <div id="status"></div>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">SS</div>
+        <div class="brand-name">Screen <span>Support</span></div>
+      </div>
+      <div class="version-pill">v0.1 MVP</div>
     </div>
 
-    <div class="step">
-      <strong>User's Screen</strong>
-      <button onclick="goFullscreen()">Fullscreen</button>
-      <video
-        id="remoteVideo"
-        autoplay
-        playsinline
-        ondblclick="goFullscreen()"
-      ></video>
+    <div class="page">
+      <div class="page-header">
+        <h1>Agent Dashboard</h1>
+        <p>Generate a code, read it to the caller, view their screen.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Session</div>
+        <button class="btn btn-primary" onclick="createSession()">
+          + New Session
+        </button>
+
+        <div id="codeBlock" class="hidden">
+          <div class="code-display" id="codeDisplay"></div>
+          <div class="code-hint">Read this code to the caller</div>
+          <div class="timer-text" id="timer"></div>
+        </div>
+
+        <div style="margin-top: 10px">
+          <span id="statusPill" class="status-pill hidden"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Caller's Screen</span>
+          <button
+            id="fullscreenBtn"
+            class="btn btn-outline hidden"
+            onclick="goFullscreen()"
+          >
+            ⛶ Fullscreen
+          </button>
+        </div>
+        <div class="video-wrapper">
+          <video
+            id="remoteVideo"
+            autoplay
+            playsinline
+            ondblclick="goFullscreen()"
+          ></video>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Activity Log</div>
+        <div id="log" class="log-box"></div>
+      </div>
     </div>
 
-    <div class="step">
-      <strong>Log</strong>
-      <div id="log"></div>
-    </div>
+    <div class="footer">© 2026 Screen Support · Internal tool</div>
 
     <script>
-      let pc, ws;
+      let pc, ws, countdownInterval, pendingExpiresAt;
 
       function log(msg) {
         const el = document.getElementById("log");
@@ -83,8 +76,43 @@
         console.log(msg);
       }
 
+      function startCountdown(expiresAtISO) {
+        const expiresAt = new Date(expiresAtISO).getTime();
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        const tick = () => {
+          const diff = Math.max(0, expiresAt - Date.now());
+          const totalSeconds = Math.floor(diff / 1000);
+          const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+          const ss = String(totalSeconds % 60).padStart(2, "0");
+          const timerEl = document.getElementById("timer");
+
+          if (diff <= 0) {
+            timerEl.textContent = "Code expired";
+            clearInterval(countdownInterval);
+            handleExpiry();
+            return;
+          }
+          timerEl.textContent = `Expires in ${mm}:${ss}`;
+        };
+
+        tick();
+        countdownInterval = setInterval(tick, 1000);
+      }
+
+      function handleExpiry() {
+        log("Session code expired");
+        resetView("Session expired.", "error");
+      }
+
+      function setStatus(text, type) {
+        const pill = document.getElementById("statusPill");
+        pill.className = "status-pill " + type;
+        pill.innerHTML = '<span class="dot"></span>' + text;
+        pill.classList.remove("hidden");
+      }
+
       async function createSession() {
-        // Guard against clicking "New Session" while a previous one is still live
         if (pc) {
           pc.close();
           pc = null;
@@ -98,9 +126,9 @@
         const data = await res.json();
         const code = data.code;
 
+        document.getElementById("codeBlock").classList.remove("hidden");
         document.getElementById("codeDisplay").textContent = code;
-        document.getElementById("status").textContent =
-          "Read this code to the user, then wait for them to connect...";
+        setStatus("Waiting for caller to connect...", "waiting");
         log("Session created: " + code);
 
         connectWebSocket(code);
@@ -108,11 +136,11 @@
 
       function connectWebSocket(code) {
         const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=user`;
+        const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=agent`;
         ws = new WebSocket(wsUrl);
 
         ws.onopen = () =>
-          log("Connected to signaling server, waiting for user...");
+          log("Connected to signaling server, waiting for caller...");
         ws.onclose = () => log("Signaling connection closed");
         ws.onerror = (e) => log("WebSocket error: " + e.message);
 
@@ -129,21 +157,22 @@
         };
 
         pc.ontrack = (event) => {
-          log("User's screen received!");
-          document.getElementById("status").textContent =
-            "Connected — viewing user's screen";
+          log("Caller's screen received!");
+          setStatus("Connected — viewing caller's screen", "connected");
           document.getElementById("remoteVideo").srcObject = event.streams[0];
+          document.getElementById("fullscreenBtn").classList.remove("hidden");
+
+          if (pendingExpiresAt) {
+            startCountdown(pendingExpiresAt);
+          }
         };
 
         pc.onconnectionstatechange = () => {
           log("Connection state: " + pc.connectionState);
-
-          // Fallback in case the explicit 'stop' message never arrives
-          // (e.g. the user's network dropped instead of a clean stop-sharing click).
           if (
             ["disconnected", "failed", "closed"].includes(pc.connectionState)
           ) {
-            resetView("User disconnected.");
+            resetView("Caller disconnected.", "ended");
           }
         };
 
@@ -151,7 +180,7 @@
           const msg = JSON.parse(event.data);
 
           if (msg.type === "offer") {
-            log("Received offer from user");
+            log("Received offer from caller");
             await pc.setRemoteDescription(msg.offer);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
@@ -164,16 +193,24 @@
               log("Failed to add ICE candidate: " + e.message);
             }
           } else if (msg.type === "stop") {
-            log("User stopped sharing");
-            resetView("User ended the session.");
+            log("Caller stopped sharing");
+            resetView("Caller ended the session.", "ended");
+          } else if (msg.type === "session-info") {
+            pendingExpiresAt = msg.expiresAt;
           }
         };
       }
 
-      function resetView(statusText) {
+      function resetView(statusText, type) {
         document.getElementById("remoteVideo").srcObject = null;
-        document.getElementById("status").textContent = statusText;
-        document.getElementById("codeDisplay").textContent = "";
+        document.getElementById("fullscreenBtn").classList.add("hidden");
+        setStatus(statusText, type);
+        document.getElementById("codeBlock").classList.add("hidden");
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        pendingExpiresAt = null;
 
         if (pc) {
           pc.close();
@@ -187,10 +224,10 @@
 
       function goFullscreen() {
         const video = document.getElementById("remoteVideo");
+        if (!video.srcObject) return; // nothing to show yet
         if (video.requestFullscreen) {
           video.requestFullscreen();
         } else if (video.webkitRequestFullscreen) {
-          // Safari
           video.webkitRequestFullscreen();
         }
       }

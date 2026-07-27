@@ -28,7 +28,7 @@ var (
 	sessionsMu sync.Mutex
 )
 
-const sessionTTL = 10 * time.Minute
+const sessionTTL = 30 * time.Minute
 
 func generateSessionCode() string {
 	for {
@@ -110,6 +110,12 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Session", code, "now has", clientCount, "clients")
 
+	infoMsg, _ := json.Marshal(map[string]string{
+		"type":      "session-info",
+		"expiresAt": session.expiresAt.Format(time.RFC3339),
+	})
+	conn.WriteMessage(websocket.TextMessage, infoMsg)
+
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
@@ -134,6 +140,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	for i, c := range session.clients {
 		if c == conn {
 			session.clients = append(session.clients[:i], session.clients[i+1:]...)
+			break
 		}
 	}
 	sessionsMu.Unlock()

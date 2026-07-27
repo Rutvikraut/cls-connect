@@ -2,69 +2,70 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Support - Share Your Screen</title>
+    <title>Screen Support</title>
+    <link rel="stylesheet" href="styles.css" />
     <style>
-      body {
-        font-family: system-ui, sans-serif;
-        max-width: 500px;
-        margin: 60px auto;
-        padding: 0 16px;
+      .page.narrow {
+        max-width: 440px;
+      }
+      .center {
         text-align: center;
-      }
-      h1 {
-        font-size: 22px;
-      }
-      input[type="text"] {
-        font-size: 24px;
-        letter-spacing: 4px;
-        padding: 10px;
-        width: 200px;
-        text-align: center;
-      }
-      button {
-        padding: 12px 24px;
-        margin-top: 12px;
-        cursor: pointer;
-        font-size: 16px;
-      }
-      video {
-        width: 100%;
-        background: #111;
-        margin-top: 16px;
-        border-radius: 6px;
-      }
-      #status {
-        margin-top: 12px;
-        color: #555;
-      }
-      #log {
-        font-family: monospace;
-        font-size: 11px;
-        background: #f4f4f4;
-        padding: 8px;
-        max-height: 120px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        text-align: left;
-        margin-top: 16px;
       }
     </style>
   </head>
   <body>
-    <h1>Company Support</h1>
-    <p>Enter the code your support agent gave you:</p>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">SS</div>
+        <div class="brand-name">Screen <span>Support</span></div>
+      </div>
+    </div>
 
-    <input type="text" id="codeInput" maxlength="6" placeholder="000000" />
-    <br />
-    <button onclick="connect()">Connect</button>
+    <div class="page narrow">
+      <div class="page-header center">
+        <h1>Connect to Support</h1>
+        <p>Enter the code your support agent gave you</p>
+      </div>
 
-    <div id="status"></div>
-    <video id="localVideo" autoplay muted playsinline></video>
+      <div class="card center">
+        <input
+          type="text"
+          id="codeInput"
+          class="code-input"
+          maxlength="6"
+          placeholder="000000"
+        />
+        <button
+          class="btn btn-primary btn-block"
+          style="margin-top: 14px"
+          onclick="connect()"
+        >
+          Connect
+        </button>
 
-    <div id="log"></div>
+        <div style="margin-top: 14px">
+          <span id="statusPill" class="status-pill hidden"></span>
+        </div>
+        <div class="timer-text" id="timer"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Your Screen</div>
+        <div class="video-wrapper">
+          <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Activity Log</div>
+        <div id="log" class="log-box"></div>
+      </div>
+    </div>
+
+    <div class="footer">© 2026 Screen Support</div>
 
     <script>
-      let pc, ws;
+      let pc, ws, countdownInterval, localStream, pendingExpiresAt;
 
       function log(msg) {
         const el = document.getElementById("log");
@@ -73,15 +74,56 @@
         console.log(msg);
       }
 
+      function startCountdown(expiresAtISO) {
+        const expiresAt = new Date(expiresAtISO).getTime();
+        if (countdownInterval) clearInterval(countdownInterval);
+
+        const tick = () => {
+          const diff = Math.max(0, expiresAt - Date.now());
+          const totalSeconds = Math.floor(diff / 1000);
+          const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+          const ss = String(totalSeconds % 60).padStart(2, "0");
+          const timerEl = document.getElementById("timer");
+
+          if (diff <= 0) {
+            timerEl.textContent = "Session expired";
+            clearInterval(countdownInterval);
+            handleExpiry();
+            return;
+          }
+          timerEl.textContent = `Expires in ${mm}:${ss}`;
+        };
+
+        tick();
+        countdownInterval = setInterval(tick, 1000);
+      }
+
+      function handleExpiry() {
+        log("Session expired");
+        try {
+          send({ type: "stop" });
+        } catch (e) {}
+        stopCaptureAndCleanup(
+          "Session expired. Enter a new code to start again.",
+          "error",
+        );
+      }
+
+      function setStatus(text, type) {
+        const pill = document.getElementById("statusPill");
+        pill.className = "status-pill " + type;
+        pill.innerHTML = '<span class="dot"></span>' + text;
+        pill.classList.remove("hidden");
+      }
+
       async function connect() {
         const code = document.getElementById("codeInput").value.trim();
         if (code.length !== 6) {
-          document.getElementById("status").textContent =
-            "Please enter the 6-digit code.";
+          setStatus("Please enter the 6-digit code.", "error");
           return;
         }
 
-        document.getElementById("status").textContent = "Connecting...";
+        setStatus("Connecting...", "waiting");
 
         const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=user`;
@@ -89,15 +131,16 @@
 
         ws.onopen = async () => {
           log("Connected to signaling server");
-          document.getElementById("status").textContent =
-            "Connected. Starting screen share...";
+          setStatus("Connected. Starting screen share...", "waiting");
           await startShare();
         };
         ws.onclose = () => log("Signaling connection closed");
-        ws.onerror = (e) => {
+        ws.onerror = () => {
           log("WebSocket error");
-          document.getElementById("status").textContent =
-            "Could not connect. Check the code and try again.";
+          setStatus(
+            "Could not connect. Check the code and try again.",
+            "error",
+          );
         };
 
         pc = new RTCPeerConnection({
@@ -115,8 +158,11 @@
         pc.onconnectionstatechange = () => {
           log("Connection state: " + pc.connectionState);
           if (pc.connectionState === "connected") {
-            document.getElementById("status").textContent =
-              "Support agent is now viewing your screen.";
+            setStatus("Support agent is viewing your screen", "connected");
+          } else if (
+            ["disconnected", "failed", "closed"].includes(pc.connectionState)
+          ) {
+            setStatus("Session ended.", "ended");
           }
         };
 
@@ -131,20 +177,28 @@
             } catch (e) {
               log("Failed to add ICE candidate: " + e.message);
             }
+          } else if (msg.type === "session-info") {
+            // Don't start the countdown yet — wait until sharing actually begins.
+            pendingExpiresAt = msg.expiresAt;
           }
         };
       }
 
       async function startShare() {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: { ideal: 8, max: 12 } },
+        localStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: { ideal: 10, max: 15 } },
         });
-        const track = stream.getVideoTracks()[0];
+        const track = localStream.getVideoTracks()[0];
         if ("contentHint" in track) track.contentHint = "detail";
+        track.onended = () => stopSharing();
 
-        document.getElementById("localVideo").srcObject = stream;
-        stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        document.getElementById("localVideo").srcObject = localStream;
+        localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
         log("Screen share started");
+
+        if (pendingExpiresAt) {
+          startCountdown(pendingExpiresAt);
+        }
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -152,8 +206,48 @@
         log("Sent offer to agent");
       }
 
+      // Stops the actual screen capture (turns off the browser's native
+      // "sharing your screen" indicator) and tears down the connection.
+      function stopCaptureAndCleanup(statusText, statusType) {
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        pendingExpiresAt = null;
+
+        if (localStream) {
+          localStream.getTracks().forEach((t) => t.stop()); // actually ends the capture
+          localStream = null;
+        }
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
+
+        document.getElementById("localVideo").srcObject = null;
+        setStatus(statusText, statusType);
+        document.getElementById("codeInput").value = "";
+      }
+
+      function stopSharing() {
+        log("Screen sharing stopped");
+        try {
+          send({ type: "stop" });
+        } catch (e) {}
+        stopCaptureAndCleanup(
+          "Session ended. Enter a new code to start again.",
+          "ended",
+        );
+      }
+
       function send(obj) {
-        ws.send(JSON.stringify(obj));
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(obj));
+        }
       }
     </script>
   </body>
