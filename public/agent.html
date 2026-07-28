@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Screen Support - Agent Dashboard</title>
+    <title>CLS - Connect</title>
     <link rel="stylesheet" href="styles.css?v=2" />
   </head>
   <body>
@@ -30,17 +30,18 @@
               <div class="step-body">
                 <div class="step-title">Send the caller this link</div>
                 <div class="step-text">
-                  They open it in a browser on the device whose screen you
-                  want to view.
+                  They open it in a browser on the device whose screen you want
+                  to view.
                 </div>
                 <div class="link-box">
                   <span id="callerLink"></span>
                   <button
-                    class="btn btn-outline"
+                    class="copy-btn"
                     id="copyLinkBtn"
                     onclick="copyCallerLink()"
+                    title="Copy link"
                   >
-                    Copy
+                    &#128203;
                   </button>
                 </div>
               </div>
@@ -51,8 +52,7 @@
               <div class="step-body">
                 <div class="step-title">Click "New Session"</div>
                 <div class="step-text">
-                  Generates a 6-digit code and starts listening for the
-                  caller.
+                  Generates a 6-digit code and starts listening for the caller.
                 </div>
               </div>
             </div>
@@ -136,17 +136,20 @@
       let pc, ws, countdownInterval, pendingExpiresAt;
 
       document.getElementById("callerLink").textContent =
-        location.origin + "/";
+        "https://cls-connect.onrender.com" + "/";
 
       function copyCallerLink() {
         const link = document.getElementById("callerLink").textContent;
+
         navigator.clipboard
           .writeText(link)
           .then(() => {
             const btn = document.getElementById("copyLinkBtn");
-            const original = btn.textContent;
-            btn.textContent = "Copied!";
-            setTimeout(() => (btn.textContent = original), 1500);
+            btn.innerHTML = "&#10003;"; // ✓
+
+            setTimeout(() => {
+              btn.innerHTML = "&#128203;"; // 📋
+            }, 1500);
           })
           .catch(() => log("Could not copy link automatically"));
       }

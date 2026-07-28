@@ -338,22 +338,37 @@ video::-webkit-media-controls-panel {
 .step-text { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
 
 .link-box {
+  margin-top: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
 }
-
 .link-box span {
-  flex: 1 1 auto;
-  min-width: 0;
+  font-size: 11px;
+  color: var(--navy);
+  flex: 1;
+  min-width: 0; /* required for text-overflow to work inside a flex child */
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.link-box .btn { padding: 4px 10px; font-size: 12px; }
+
+.copy-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+    color: var(--navy);
+    flex-shrink: 0;
+    transition: transform .2s;
 }
 
-.link-box .btn {
-  flex: 0 0 auto;
-  padding: 4px 10px;
-  font-size: 12px;
+.copy-btn:hover {
+    transform: scale(1.15);
 }
