@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>CLS - Connect</title>
-    <link rel="stylesheet" href="styles.css?v=2" />
+    <link rel="stylesheet" href="styles.css?v=3" />
   </head>
   <body>
     <div class="topbar">
@@ -111,6 +111,7 @@
 
     <script>
       let pc, ws, countdownInterval, localStream, pendingExpiresAt;
+      let cleanedUp = false; // guards against double-cleanup races
 
       function log(msg) {
         const el = document.getElementById("log");
@@ -168,6 +169,7 @@
           return;
         }
 
+        cleanedUp = false;
         setStatus("Connecting...", "waiting");
 
         const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
@@ -179,7 +181,16 @@
           setStatus("Connected. Starting screen share...", "waiting");
           await startShare();
         };
-        ws.onclose = () => log("Signaling connection closed");
+        ws.onclose = () => {
+          log("Signaling connection closed");
+          // The server closes this socket whenever the session ends (either
+          // side sent "stop", or it expired) — treat it as a hangup signal
+          // too, in case the explicit "stop" message above was missed.
+          stopCaptureAndCleanup(
+            "Session ended. Enter a new code to start again.",
+            "ended",
+          );
+        };
         ws.onerror = () => {
           log("WebSocket error");
           setStatus(
@@ -206,7 +217,10 @@
           } else if (
             ["disconnected", "failed", "closed"].includes(pc.connectionState)
           ) {
-            setStatus("Session ended.", "ended");
+            // Fallback: if we somehow get here without having already
+            // stopped the capture (e.g. the "stop" message or ws close
+            // didn't fire), make sure the screen-share track actually ends.
+            stopCaptureAndCleanup("Session ended.", "ended");
           }
         };
 
@@ -221,6 +235,14 @@
             } catch (e) {
               log("Failed to add ICE candidate: " + e.message);
             }
+          } else if (msg.type === "stop") {
+            // The agent ended the call. Stop sharing immediately rather
+            // than waiting for the peer connection to time out on its own.
+            log("Agent ended the session");
+            stopCaptureAndCleanup(
+              "The agent ended the session. Enter a new code to start again.",
+              "ended",
+            );
           } else if (msg.type === "session-info") {
             pendingExpiresAt = msg.expiresAt;
           }
@@ -265,7 +287,15 @@
         log("Sent offer to agent");
       }
 
+      // Stops the actual screen capture (turns off the browser's native
+      // "sharing your screen" indicator) and tears down the connection.
+      // Safe to call more than once — the guard below prevents duplicate
+      // status updates / double-closes when both the "stop" message and
+      // ws.onclose (or onconnectionstatechange) fire for the same hangup.
       function stopCaptureAndCleanup(statusText, statusType) {
+        if (cleanedUp) return;
+        cleanedUp = true;
+
         if (countdownInterval) {
           clearInterval(countdownInterval);
           countdownInterval = null;
@@ -273,7 +303,7 @@
         pendingExpiresAt = null;
 
         if (localStream) {
-          localStream.getTracks().forEach((t) => t.stop());
+          localStream.getTracks().forEach((t) => t.stop()); // actually ends the capture
           localStream = null;
         }
         if (pc) {
@@ -281,6 +311,7 @@
           pc = null;
         }
         if (ws) {
+          ws.onclose = null; // avoid re-entering this function via onclose
           ws.close();
           ws = null;
         }

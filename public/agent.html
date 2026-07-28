@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>CLS - Connect</title>
-    <link rel="stylesheet" href="styles.css?v=2" />
+    <link rel="stylesheet" href="styles.css?v=3" />
   </head>
   <body>
     <div class="topbar">
@@ -14,7 +14,8 @@
       <div class="version-pill">v0.1 MVP</div>
     </div>
 
-    <div class="page page-wide">
+    <!-- ============ START / DASHBOARD VIEW ============ -->
+    <div class="page page-wide" id="dashboardView">
       <div class="page-header">
         <h1>Agent Dashboard</h1>
         <p>Generate a code, read it to the caller, view their screen.</p>
@@ -72,8 +73,9 @@
               <div class="step-body">
                 <div class="step-title">They share their screen</div>
                 <div class="step-text">
-                  Once approved, it appears here automatically — view only,
-                  nothing you do controls their device.
+                  Once approved, their screen fills your browser window
+                  automatically — view only, nothing you do controls their
+                  device.
                 </div>
               </div>
             </div>
@@ -90,7 +92,7 @@
             <div id="codeBlock" class="hidden">
               <div class="code-display" id="codeDisplay"></div>
               <div class="code-hint">Read this code to the caller</div>
-              <div class="timer-text" id="timer"></div>
+              <div class="timer-text" id="timerDash"></div>
             </div>
 
             <div style="margin-top: 10px">
@@ -99,34 +101,43 @@
           </div>
 
           <div class="card">
-            <div class="card-title">
-              <span>Caller's Screen</span>
-              <button
-                id="fullscreenBtn"
-                class="btn btn-outline hidden"
-                onclick="goFullscreen()"
-              >
-                ⛶ Fullscreen
-              </button>
-            </div>
-            <div class="video-wrapper" id="videoWrapper">
-              <video
-                id="remoteVideo"
-                autoplay
-                playsinline
-                tabindex="-1"
-                disablePictureInPicture
-                controlsList="nodownload noremoteplayback"
-                ondblclick="goFullscreen()"
-              ></video>
-            </div>
-          </div>
-
-          <div class="card">
             <div class="card-title">Activity Log</div>
             <div id="log" class="log-box"></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ============ FULL-SCREEN CALL VIEW (Meet-style) ============ -->
+    <div class="call-view hidden" id="callView">
+      <div class="call-topbar">
+        <div class="call-status">
+          <span class="status-pill connected">
+            <span class="dot"></span>Viewing caller's screen
+          </span>
+        </div>
+        <div class="call-timer" id="timerCall"></div>
+      </div>
+
+      <div class="call-video-wrap" id="videoWrapper">
+        <video
+          id="remoteVideo"
+          autoplay
+          playsinline
+          tabindex="-1"
+          disablePictureInPicture
+          controlsList="nodownload noremoteplayback"
+          ondblclick="goFullscreen()"
+        ></video>
+      </div>
+
+      <div class="call-bottombar">
+        <button class="btn btn-outline" onclick="goFullscreen()">
+          ⛶ Fullscreen
+        </button>
+        <button class="btn btn-end-call" onclick="endCall()">
+          ✕ End Call
+        </button>
       </div>
     </div>
 
@@ -146,7 +157,6 @@
           .then(() => {
             const btn = document.getElementById("copyLinkBtn");
             btn.innerHTML = "&#10003;"; // ✓
-
             setTimeout(() => {
               btn.innerHTML = "&#128203;"; // 📋
             }, 1500);
@@ -161,24 +171,31 @@
         console.log(msg);
       }
 
+      // Updates every timer element present on the page (dashboard countdown
+      // while waiting, and the in-call timer once the call view is showing).
       function startCountdown(expiresAtISO) {
         const expiresAt = new Date(expiresAtISO).getTime();
         if (countdownInterval) clearInterval(countdownInterval);
+
+        const targets = ["timerDash", "timerCall"]
+          .map((id) => document.getElementById(id))
+          .filter(Boolean);
 
         const tick = () => {
           const diff = Math.max(0, expiresAt - Date.now());
           const totalSeconds = Math.floor(diff / 1000);
           const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
           const ss = String(totalSeconds % 60).padStart(2, "0");
-          const timerEl = document.getElementById("timer");
 
           if (diff <= 0) {
-            timerEl.textContent = "Code expired";
+            targets.forEach((el) => (el.textContent = "Code expired"));
             clearInterval(countdownInterval);
             handleExpiry();
             return;
           }
-          timerEl.textContent = `Expires in ${mm}:${ss}`;
+          targets.forEach(
+            (el) => (el.textContent = `Expires in ${mm}:${ss}`),
+          );
         };
 
         tick();
@@ -195,6 +212,16 @@
         pill.className = "status-pill " + type;
         pill.innerHTML = '<span class="dot"></span>' + text;
         pill.classList.remove("hidden");
+      }
+
+      function showCallView() {
+        document.getElementById("dashboardView").classList.add("hidden");
+        document.getElementById("callView").classList.remove("hidden");
+      }
+
+      function showDashboard() {
+        document.getElementById("callView").classList.add("hidden");
+        document.getElementById("dashboardView").classList.remove("hidden");
       }
 
       async function createSession() {
@@ -270,17 +297,16 @@
 
         pc.ontrack = (event) => {
           log("Caller's screen received!");
-          setStatus("Connected — viewing caller's screen", "connected");
           const video = document.getElementById("remoteVideo");
           video.srcObject = event.streams[0];
-          document.getElementById("fullscreenBtn").classList.remove("hidden");
 
           // Defensive guard: this is a one-way live view — the agent should
           // never be able to pause it (accidental click, spacebar, etc).
-          // If something pauses it, immediately resume playback.
           video.onpause = () => {
             if (video.srcObject) video.play().catch(() => {});
           };
+
+          showCallView();
 
           if (pendingExpiresAt) {
             startCountdown(pendingExpiresAt);
@@ -313,11 +339,21 @@
         }
       }
 
+      // Agent explicitly hangs up — tells the caller's side and the server
+      // to end the session too (main.go treats a "stop" from either role
+      // the same way), then returns to the dashboard.
+      function endCall() {
+        log("Ending call");
+        try {
+          send({ type: "stop" });
+        } catch (e) {}
+        resetView("Session ended.", "ended");
+      }
+
       function resetView(statusText, type) {
         const video = document.getElementById("remoteVideo");
         video.onpause = null;
         video.srcObject = null;
-        document.getElementById("fullscreenBtn").classList.add("hidden");
         setStatus(statusText, type);
         document.getElementById("codeBlock").classList.add("hidden");
         if (countdownInterval) {
@@ -334,18 +370,16 @@
           ws.close();
           ws = null;
         }
+
+        showDashboard();
       }
 
       function goFullscreen() {
         const video = document.getElementById("remoteVideo");
         if (!video.srcObject) return;
 
-        // Important: request fullscreen on the WRAPPER div, not the <video>
-        // element itself. Browsers only overlay their own native play/pause/
-        // scrubber controls when a <video> tag is directly the fullscreen
-        // element — a plain div gets no such treatment, in Chrome, Firefox,
-        // or Safari. This is what actually suppresses those controls,
-        // rather than trying to hide them with CSS after the fact.
+        // Request fullscreen on the WRAPPER div, not the <video> element,
+        // so browsers don't overlay their own native play/pause controls.
         const el = document.getElementById("videoWrapper");
         if (el.requestFullscreen) {
           el.requestFullscreen();
