@@ -338,22 +338,22 @@ video::-webkit-media-controls-panel {
 .step-text { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
 
 .link-box {
-  margin-top: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 8px;
+  width: 100%;
 }
+
 .link-box span {
-  font-size: 11px;
-  color: var(--navy);
-  flex: 1;
-  min-width: 0; /* required for text-overflow to work inside a flex child */
-  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.link-box .btn { padding: 4px 10px; font-size: 12px; }
+
+.link-box .btn {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  font-size: 12px;
+}
