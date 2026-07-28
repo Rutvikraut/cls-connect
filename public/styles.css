@@ -350,7 +350,10 @@ video::-webkit-media-controls-panel {
 .link-box span {
   font-size: 11px;
   color: var(--navy);
-  word-break: break-all;
   flex: 1;
+  min-width: 0; /* required for text-overflow to work inside a flex child */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .link-box .btn { padding: 4px 10px; font-size: 12px; }
