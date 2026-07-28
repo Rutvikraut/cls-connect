@@ -82,6 +82,21 @@ body {
   color: var(--orange);
 }
 
+.beta-tag {
+  background: rgba(255, 255, 255, 0.15); /* Soft white highlight */
+  color: #fff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 12px; /* Pill shape */
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+
 .version-pill {
   background: rgba(255,255,255,0.12);
   color: #cbd5e1;
