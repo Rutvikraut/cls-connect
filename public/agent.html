@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Screen Support - Agent Dashboard</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=2" />
   </head>
   <body>
     <div class="topbar">
@@ -14,53 +14,119 @@
       <div class="version-pill">v0.1 MVP</div>
     </div>
 
-    <div class="page">
+    <div class="page page-wide">
       <div class="page-header">
         <h1>Agent Dashboard</h1>
         <p>Generate a code, read it to the caller, view their screen.</p>
       </div>
 
-      <div class="card">
-        <div class="card-title">Session</div>
-        <button class="btn btn-primary" onclick="createSession()">
-          + New Session
-        </button>
+      <div class="layout-grid">
+        <aside class="instructions-panel">
+          <div class="instructions-title">How to Start a Session</div>
 
-        <div id="codeBlock" class="hidden">
-          <div class="code-display" id="codeDisplay"></div>
-          <div class="code-hint">Read this code to the caller</div>
-          <div class="timer-text" id="timer"></div>
-        </div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Send the caller this link</div>
+                <div class="step-text">
+                  They open it in a browser on the device whose screen you
+                  want to view.
+                </div>
+                <div class="link-box">
+                  <span id="callerLink"></span>
+                  <button
+                    class="btn btn-outline"
+                    id="copyLinkBtn"
+                    onclick="copyCallerLink()"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
 
-        <div style="margin-top: 10px">
-          <span id="statusPill" class="status-pill hidden"></span>
-        </div>
-      </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Click "New Session"</div>
+                <div class="step-text">
+                  Generates a 6-digit code and starts listening for the
+                  caller.
+                </div>
+              </div>
+            </div>
 
-      <div class="card">
-        <div class="card-title">
-          <span>Caller's Screen</span>
-          <button
-            id="fullscreenBtn"
-            class="btn btn-outline hidden"
-            onclick="goFullscreen()"
-          >
-            ⛶ Fullscreen
-          </button>
-        </div>
-        <div class="video-wrapper">
-          <video
-            id="remoteVideo"
-            autoplay
-            playsinline
-            ondblclick="goFullscreen()"
-          ></video>
-        </div>
-      </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Read the code aloud</div>
+                <div class="step-text">
+                  Ask the caller to type it into the page and click Connect.
+                </div>
+              </div>
+            </div>
 
-      <div class="card">
-        <div class="card-title">Activity Log</div>
-        <div id="log" class="log-box"></div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">They share their screen</div>
+                <div class="step-text">
+                  Once approved, it appears here automatically — view only,
+                  nothing you do controls their device.
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="main-col">
+          <div class="card">
+            <div class="card-title">Session</div>
+            <button class="btn btn-primary" onclick="createSession()">
+              + New Session
+            </button>
+
+            <div id="codeBlock" class="hidden">
+              <div class="code-display" id="codeDisplay"></div>
+              <div class="code-hint">Read this code to the caller</div>
+              <div class="timer-text" id="timer"></div>
+            </div>
+
+            <div style="margin-top: 10px">
+              <span id="statusPill" class="status-pill hidden"></span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>Caller's Screen</span>
+              <button
+                id="fullscreenBtn"
+                class="btn btn-outline hidden"
+                onclick="goFullscreen()"
+              >
+                ⛶ Fullscreen
+              </button>
+            </div>
+            <div class="video-wrapper" id="videoWrapper">
+              <video
+                id="remoteVideo"
+                autoplay
+                playsinline
+                tabindex="-1"
+                disablePictureInPicture
+                controlsList="nodownload noremoteplayback"
+                ondblclick="goFullscreen()"
+              ></video>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Activity Log</div>
+            <div id="log" class="log-box"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -68,6 +134,22 @@
 
     <script>
       let pc, ws, countdownInterval, pendingExpiresAt;
+
+      document.getElementById("callerLink").textContent =
+        location.origin + "/";
+
+      function copyCallerLink() {
+        const link = document.getElementById("callerLink").textContent;
+        navigator.clipboard
+          .writeText(link)
+          .then(() => {
+            const btn = document.getElementById("copyLinkBtn");
+            const original = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = original), 1500);
+          })
+          .catch(() => log("Could not copy link automatically"));
+      }
 
       function log(msg) {
         const el = document.getElementById("log");
@@ -173,7 +255,7 @@
 
       async function createPeerConnection() {
         const iceServers = await getIceServers();
-        pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: "relay" });
+        pc = new RTCPeerConnection({ iceServers });
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -186,8 +268,16 @@
         pc.ontrack = (event) => {
           log("Caller's screen received!");
           setStatus("Connected — viewing caller's screen", "connected");
-          document.getElementById("remoteVideo").srcObject = event.streams[0];
+          const video = document.getElementById("remoteVideo");
+          video.srcObject = event.streams[0];
           document.getElementById("fullscreenBtn").classList.remove("hidden");
+
+          // Defensive guard: this is a one-way live view — the agent should
+          // never be able to pause it (accidental click, spacebar, etc).
+          // If something pauses it, immediately resume playback.
+          video.onpause = () => {
+            if (video.srcObject) video.play().catch(() => {});
+          };
 
           if (pendingExpiresAt) {
             startCountdown(pendingExpiresAt);
@@ -221,7 +311,9 @@
       }
 
       function resetView(statusText, type) {
-        document.getElementById("remoteVideo").srcObject = null;
+        const video = document.getElementById("remoteVideo");
+        video.onpause = null;
+        video.srcObject = null;
         document.getElementById("fullscreenBtn").classList.add("hidden");
         setStatus(statusText, type);
         document.getElementById("codeBlock").classList.add("hidden");
@@ -243,11 +335,23 @@
 
       function goFullscreen() {
         const video = document.getElementById("remoteVideo");
-        if (!video.srcObject) return; // nothing to show yet
-        if (video.requestFullscreen) {
-          video.requestFullscreen();
-        } else if (video.webkitRequestFullscreen) {
-          video.webkitRequestFullscreen();
+        if (!video.srcObject) return;
+
+        // Important: request fullscreen on the WRAPPER div, not the <video>
+        // element itself. Browsers only overlay their own native play/pause/
+        // scrubber controls when a <video> tag is directly the fullscreen
+        // element — a plain div gets no such treatment, in Chrome, Firefox,
+        // or Safari. This is what actually suppresses those controls,
+        // rather than trying to hide them with CSS after the fact.
+        const el = document.getElementById("videoWrapper");
+        if (el.requestFullscreen) {
+          el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          el.webkitRequestFullscreen();
+        } else if (el.mozRequestFullScreen) {
+          el.mozRequestFullScreen();
+        } else if (el.msRequestFullscreen) {
+          el.msRequestFullscreen();
         }
       }
 

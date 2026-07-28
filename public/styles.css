@@ -15,15 +15,11 @@
   --radius: 10px;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text-dark);
   min-height: 100vh;
@@ -72,7 +68,7 @@ body {
 }
 
 .version-pill {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255,255,255,0.12);
   color: #cbd5e1;
   font-size: 12px;
   padding: 4px 10px;
@@ -108,7 +104,7 @@ body {
   background: var(--white);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -139,18 +135,14 @@ body {
   background: var(--navy);
   color: #fff;
 }
-.btn-primary:hover {
-  background: var(--navy-light);
-}
+.btn-primary:hover { background: var(--navy-light); }
 
 .btn-outline {
   background: var(--white);
   color: var(--navy);
   border: 1px solid var(--border);
 }
-.btn-outline:hover {
-  background: #f8fafc;
-}
+.btn-outline:hover { background: #f8fafc; }
 
 .btn-block {
   width: 100%;
@@ -167,27 +159,12 @@ body {
   padding: 3px 10px;
   border-radius: 999px;
 }
-.status-pill.waiting {
-  background: #fef3c7;
-  color: #b45309;
-}
-.status-pill.connected {
-  background: var(--green-bg);
-  color: #047857;
-}
-.status-pill.ended {
-  background: #f1f5f9;
-  color: var(--text-muted);
-}
-.status-pill.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.status-pill.waiting { background: #fef3c7; color: #b45309; }
+.status-pill.connected { background: var(--green-bg); color: #047857; }
+.status-pill.ended { background: #f1f5f9; color: var(--text-muted); }
+.status-pill.error { background: #fee2e2; color: #b91c1c; }
 .status-pill .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
+  width: 6px; height: 6px; border-radius: 50%; background: currentColor;
 }
 
 /* ---------- Session code ---------- */
@@ -240,10 +217,46 @@ body {
   overflow: hidden;
   margin-top: 4px;
 }
+
+/* When the WRAPPER (not the <video> tag) is the fullscreen element,
+   make it fill the screen and center the video inside it, letterboxed
+   if the aspect ratio doesn't match. Covers all browser prefixes. */
+.video-wrapper:fullscreen,
+.video-wrapper:-webkit-full-screen,
+.video-wrapper:-moz-full-screen,
+.video-wrapper:-ms-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  border-radius: 0;
+}
+
+.video-wrapper:fullscreen video,
+.video-wrapper:-webkit-full-screen video,
+.video-wrapper:-moz-full-screen video,
+.video-wrapper:-ms-fullscreen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 video {
   width: 100%;
   display: block;
   background: #0f172a;
+}
+
+/* Suppress Chrome/Safari's native media control overlay entirely —
+   including the play/pause bar that otherwise appears automatically
+   when a <video> enters fullscreen, regardless of the `controls` attribute. */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* ---------- Log box ---------- */
@@ -269,6 +282,75 @@ video {
   padding: 14px;
 }
 
-.hidden {
-  display: none !important;
+.hidden { display: none !important; }
+
+/* ---------- Two-column layout with instructions panel ---------- */
+.page-wide { max-width: 1040px; }
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
 }
+
+@media (max-width: 720px) {
+  .layout-grid { grid-template-columns: 1fr; }
+}
+
+.instructions-panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  position: sticky;
+  top: 20px;
+}
+
+.instructions-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--navy);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.steps { display: flex; flex-direction: column; gap: 16px; }
+
+.step { display: flex; gap: 10px; align-items: flex-start; }
+
+.step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: var(--navy);
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.step-text { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+
+.link-box {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.link-box span {
+  font-size: 11px;
+  color: var(--navy);
+  word-break: break-all;
+  flex: 1;
+}
+.link-box .btn { padding: 4px 10px; font-size: 12px; }

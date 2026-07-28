@@ -3,15 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Screen Support</title>
-    <link rel="stylesheet" href="styles.css" />
-    <style>
-      .page.narrow {
-        max-width: 440px;
-      }
-      .center {
-        text-align: center;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css?v=2" />
   </head>
   <body>
     <div class="topbar">
@@ -21,44 +13,97 @@
       </div>
     </div>
 
-    <div class="page narrow">
+    <div class="page page-wide">
       <div class="page-header center">
         <h1>Connect to Support</h1>
         <p>Enter the code your support agent gave you</p>
       </div>
 
-      <div class="card center">
-        <input
-          type="text"
-          id="codeInput"
-          class="code-input"
-          maxlength="6"
-          placeholder="000000"
-        />
-        <button
-          class="btn btn-primary btn-block"
-          style="margin-top: 14px"
-          onclick="connect()"
-        >
-          Connect
-        </button>
+      <div class="layout-grid">
+        <aside class="instructions-panel">
+          <div class="instructions-title">How This Works</div>
 
-        <div style="margin-top: 14px">
-          <span id="statusPill" class="status-pill hidden"></span>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Stay on the phone</div>
+                <div class="step-text">
+                  Your support agent is on the call and will guide you the
+                  whole time.
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Get your code</div>
+                <div class="step-text">
+                  They'll read you a 6-digit code out loud.
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Enter it and connect</div>
+                <div class="step-text">
+                  Type the code into the box and click Connect.
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Share your screen</div>
+                <div class="step-text">
+                  Choose the screen or tab to show, then click Share. The
+                  agent can only view — never control your device, camera,
+                  or microphone.
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="main-col">
+          <div class="card center">
+            <input
+              type="text"
+              id="codeInput"
+              class="code-input"
+              maxlength="6"
+              placeholder="000000"
+            />
+            <button
+              class="btn btn-primary btn-block"
+              style="margin-top: 14px"
+              onclick="connect()"
+            >
+              Connect
+            </button>
+
+            <div style="margin-top: 14px">
+              <span id="statusPill" class="status-pill hidden"></span>
+            </div>
+            <div class="timer-text" id="timer"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Your Screen</div>
+            <div class="video-wrapper">
+              <video id="localVideo" autoplay muted playsinline tabindex="-1" disablePictureInPicture></video>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Activity Log</div>
+            <div id="log" class="log-box"></div>
+          </div>
         </div>
-        <div class="timer-text" id="timer"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Your Screen</div>
-        <div class="video-wrapper">
-          <video id="localVideo" autoplay muted playsinline></video>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Activity Log</div>
-        <div id="log" class="log-box"></div>
       </div>
     </div>
 
@@ -177,7 +222,6 @@
               log("Failed to add ICE candidate: " + e.message);
             }
           } else if (msg.type === "session-info") {
-            // Don't start the countdown yet — wait until sharing actually begins.
             pendingExpiresAt = msg.expiresAt;
           }
         };
@@ -221,8 +265,6 @@
         log("Sent offer to agent");
       }
 
-      // Stops the actual screen capture (turns off the browser's native
-      // "sharing your screen" indicator) and tears down the connection.
       function stopCaptureAndCleanup(statusText, statusType) {
         if (countdownInterval) {
           clearInterval(countdownInterval);
@@ -231,7 +273,7 @@
         pendingExpiresAt = null;
 
         if (localStream) {
-          localStream.getTracks().forEach((t) => t.stop()); // actually ends the capture
+          localStream.getTracks().forEach((t) => t.stop());
           localStream = null;
         }
         if (pc) {
