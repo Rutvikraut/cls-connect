@@ -147,10 +147,22 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"service": "webrtc-signaling-server",
+		"time":    time.Now().Format(time.RFC3339),
+	})
+}
+
 func main() {
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 
+	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/api/create-session", createSessionHandler)
 	http.HandleFunc("/ws", handleWS)
 
