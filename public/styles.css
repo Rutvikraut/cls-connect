@@ -1,25 +1,27 @@
 :root {
-  --navy: #1b2c4f;
-  --navy-light: #24365c;
-  --orange: #f5a623;
-  --bg: #eef1f5;
-  --white: #ffffff;
-  --text-dark: #1f2937;
-  --text-muted: #6b7280;
-  --green: #10b981;
-  --green-bg: #d1fae5;
-  --blue-badge-bg: #dbeafe;
-  --blue-badge-text: #2563eb;
-  --red: #ef4444;
-  --border: #e5e7eb;
-  --radius: 10px;
+  /* Mapped to CLS Theme Variables */
+  --navy: #1c3f6e;           /* var(--cls-primary) */
+  --navy-light: #162f52;     /* var(--cls-primary-hover) */
+  --orange: #f59e0b;         /* var(--cls-accent) */
+  --bg: #f0f4f8;             /* var(--cls-bg) */
+  --white: #ffffff;          /* var(--cls-surface) */
+  --text-dark: #0f1e2e;      /* var(--cls-text-primary) */
+  --text-muted: #8fa8c0;     /* var(--cls-text-muted) */
+  --green: #166534;          /* var(--cls-closed-text) */
+  --green-bg: #dcfce7;       /* var(--cls-closed-bg) */
+  --blue-badge-bg: #e0f2fe;  /* var(--cls-open-bg) */
+  --blue-badge-text: #0369a1;/* var(--cls-open-text) */
+  --red: #c0392b;            /* Danger button color */
+  --border: #dde5ee;         /* var(--cls-border) */
+  --radius: 10px;            /* var(--cls-radius-md) */
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Updated to match CLS's font */
+  font-family: 'Plus Jakarta Sans', sans-serif;
   background: var(--bg);
   color: var(--text-dark);
   min-height: 100vh;
@@ -30,39 +32,53 @@ body {
 /* ---------- Top bar ---------- */
 .topbar {
   background: var(--navy);
-  border-bottom: 3px solid var(--orange);
   padding: 14px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.20);
+  z-index: 100;
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--orange) 0%, transparent 55%);
+  pointer-events: none;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px; /* Matched gap from CLS */
 }
-
 .brand-badge {
+  width: 28px; /* Matched size */
+  height: 28px;
   background: var(--orange);
-  color: var(--navy);
-  font-weight: 800;
-  font-size: 13px;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: 0.5px;
-}
-
-.brand-name {
-  color: #fff;
+  font-size: 11px;
   font-weight: 700;
-  font-size: 16px;
+  color: var(--navy);
+  font-family: "JetBrains Mono", monospace; /* Added CLS monospace font */
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+  user-select: none;
 }
-
+.brand-name {
+  font-size: 14.5px; /* Matched font size */
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+  line-height: 1;
+}
 .brand-name span {
   color: var(--orange);
 }
@@ -129,13 +145,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.15s ease;
 }
 
 .btn-primary {
   background: var(--navy);
   color: #fff;
 }
-.btn-primary:hover { background: var(--navy-light); }
+.btn-primary:hover { background: var(--navy-light); transform: translateY(-1px); }
 
 .btn-outline {
   background: var(--white);
@@ -159,10 +176,11 @@ body {
   padding: 3px 10px;
   border-radius: 999px;
 }
-.status-pill.waiting { background: #fef3c7; color: #b45309; }
-.status-pill.connected { background: var(--green-bg); color: #047857; }
+/* Replaced generic warning with CLS Pending colours */
+.status-pill.waiting { background: #fef9c3; color: #a16207; }
+.status-pill.connected { background: var(--green-bg); color: var(--green); }
 .status-pill.ended { background: #f1f5f9; color: var(--text-muted); }
-.status-pill.error { background: #fee2e2; color: #b91c1c; }
+.status-pill.error { background: #fee2e2; color: var(--red); }
 .status-pill .dot {
   width: 6px; height: 6px; border-radius: 50%; background: currentColor;
 }
@@ -207,7 +225,7 @@ body {
 .code-input:focus {
   outline: none;
   border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); /* Updated focus ring to match CLS accent */
 }
 
 /* ---------- Video ---------- */
@@ -261,7 +279,7 @@ video::-webkit-media-controls-panel {
 
 /* ---------- Log box ---------- */
 .log-box {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; /* Match CLS Monospace */
   font-size: 11px;
   background: #f8fafc;
   border: 1px solid var(--border);
@@ -351,7 +369,7 @@ video::-webkit-media-controls-panel {
   font-size: 11px;
   color: var(--navy);
   flex: 1;
-  min-width: 0; /* required for text-overflow to work inside a flex child */
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
