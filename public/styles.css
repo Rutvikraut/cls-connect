@@ -147,11 +147,17 @@ body {
   transition: all 0.15s ease;
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
 .btn-primary {
   background: var(--navy);
   color: #fff;
 }
-.btn-primary:hover { background: var(--navy-light); transform: translateY(-1px); }
+.btn-primary:hover:not(:disabled) { background: var(--navy-light); transform: translateY(-1px); }
 
 .btn-outline {
   background: var(--white);
@@ -376,8 +382,6 @@ video::-webkit-media-controls-panel {
 
 /* ============================================================
    Meet-style full-viewport call view (agent dashboard)
-   Takes over the entire browser window once the caller's
-   screen starts streaming — no need to hit "fullscreen".
    ============================================================ */
 .call-view {
   position: fixed;
@@ -398,11 +402,53 @@ video::-webkit-media-controls-panel {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.call-timer {
-  color: #cbd5e1;
+.call-timers {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timer-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: "JetBrains Mono", monospace;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.timer-chip-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.duration-chip {
+  color: #86efac;
+}
+.duration-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+.expiry-chip {
+  color: #fbbf24;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .call-video-wrap {

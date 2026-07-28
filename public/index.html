@@ -77,6 +77,8 @@
               class="code-input"
               maxlength="6"
               placeholder="000000"
+              inputmode="numeric"
+              autocomplete="off"
             />
             <button
               class="btn btn-primary btn-block"
@@ -111,7 +113,7 @@
 
     <script>
       let pc, ws, countdownInterval, localStream, pendingExpiresAt;
-      let cleanedUp = false; // guards against double-cleanup races
+      let cleanedUp = false;
 
       function log(msg) {
         const el = document.getElementById("log");
@@ -119,6 +121,20 @@
         el.scrollTop = el.scrollHeight;
         console.log(msg);
       }
+
+      // ---------- Auto-focus, digits-only, auto-submit ----------
+      window.addEventListener("DOMContentLoaded", () => {
+        const input = document.getElementById("codeInput");
+        input.focus();
+
+        input.addEventListener("input", () => {
+          // Strip anything that isn't a digit as the user types/pastes.
+          const digitsOnly = input.value.replace(/\D/g, "").slice(0, 6);
+          if (digitsOnly !== input.value) {
+            input.value = digitsOnly;
+          }
+        });
+      });
 
       function startCountdown(expiresAtISO) {
         const expiresAt = new Date(expiresAtISO).getTime();
@@ -137,7 +153,7 @@
             handleExpiry();
             return;
           }
-          timerEl.textContent = `Expires in ${mm}:${ss}`;
+          timerEl.textContent = `Session will expire in ${mm}:${ss}`;
         };
 
         tick();
@@ -183,9 +199,6 @@
         };
         ws.onclose = () => {
           log("Signaling connection closed");
-          // The server closes this socket whenever the session ends (either
-          // side sent "stop", or it expired) — treat it as a hangup signal
-          // too, in case the explicit "stop" message above was missed.
           stopCaptureAndCleanup(
             "Session ended. Enter a new code to start again.",
             "ended",
@@ -217,9 +230,6 @@
           } else if (
             ["disconnected", "failed", "closed"].includes(pc.connectionState)
           ) {
-            // Fallback: if we somehow get here without having already
-            // stopped the capture (e.g. the "stop" message or ws close
-            // didn't fire), make sure the screen-share track actually ends.
             stopCaptureAndCleanup("Session ended.", "ended");
           }
         };
@@ -236,8 +246,6 @@
               log("Failed to add ICE candidate: " + e.message);
             }
           } else if (msg.type === "stop") {
-            // The agent ended the call. Stop sharing immediately rather
-            // than waiting for the peer connection to time out on its own.
             log("Agent ended the session");
             stopCaptureAndCleanup(
               "The agent ended the session. Enter a new code to start again.",
@@ -287,11 +295,6 @@
         log("Sent offer to agent");
       }
 
-      // Stops the actual screen capture (turns off the browser's native
-      // "sharing your screen" indicator) and tears down the connection.
-      // Safe to call more than once — the guard below prevents duplicate
-      // status updates / double-closes when both the "stop" message and
-      // ws.onclose (or onconnectionstatechange) fire for the same hangup.
       function stopCaptureAndCleanup(statusText, statusType) {
         if (cleanedUp) return;
         cleanedUp = true;
@@ -303,7 +306,7 @@
         pendingExpiresAt = null;
 
         if (localStream) {
-          localStream.getTracks().forEach((t) => t.stop()); // actually ends the capture
+          localStream.getTracks().forEach((t) => t.stop());
           localStream = null;
         }
         if (pc) {
@@ -311,7 +314,7 @@
           pc = null;
         }
         if (ws) {
-          ws.onclose = null; // avoid re-entering this function via onclose
+          ws.onclose = null;
           ws.close();
           ws = null;
         }
@@ -319,6 +322,7 @@
         document.getElementById("localVideo").srcObject = null;
         setStatus(statusText, statusType);
         document.getElementById("codeInput").value = "";
+        document.getElementById("codeInput").focus();
       }
 
       function stopSharing() {

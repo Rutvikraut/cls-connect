@@ -85,7 +85,7 @@
         <div class="main-col">
           <div class="card">
             <div class="card-title">Session</div>
-            <button class="btn btn-primary" onclick="createSession()">
+            <button class="btn btn-primary" id="newSessionBtn" onclick="createSession()">
               + New Session
             </button>
 
@@ -116,7 +116,12 @@
             <span class="dot"></span>Viewing caller's screen
           </span>
         </div>
-        <div class="call-timer" id="timerCall"></div>
+        <div class="call-timers">
+          <span class="timer-chip expiry-chip">
+            <span class="timer-chip-label">Call will end in</span>
+            <span id="timerCall"></span>
+          </span>
+        </div>
       </div>
 
       <div class="call-video-wrap" id="videoWrapper">
@@ -145,6 +150,7 @@
 
     <script>
       let pc, ws, countdownInterval, pendingExpiresAt;
+      let durationInterval, callStartTime;
 
       document.getElementById("callerLink").textContent =
         "https://cls-connect.onrender.com" + "/";
@@ -156,9 +162,9 @@
           .writeText(link)
           .then(() => {
             const btn = document.getElementById("copyLinkBtn");
-            btn.innerHTML = "&#10003;"; // ✓
+            btn.innerHTML = "&#10003;";
             setTimeout(() => {
-              btn.innerHTML = "&#128203;"; // 📋
+              btn.innerHTML = "&#128203;";
             }, 1500);
           })
           .catch(() => log("Could not copy link automatically"));
@@ -171,15 +177,12 @@
         console.log(msg);
       }
 
-      // Updates every timer element present on the page (dashboard countdown
-      // while waiting, and the in-call timer once the call view is showing).
       function startCountdown(expiresAtISO) {
         const expiresAt = new Date(expiresAtISO).getTime();
         if (countdownInterval) clearInterval(countdownInterval);
 
-        const targets = ["timerDash", "timerCall"]
-          .map((id) => document.getElementById(id))
-          .filter(Boolean);
+        const dashEl = document.getElementById("timerDash");
+        const callEl = document.getElementById("timerCall");
 
         const tick = () => {
           const diff = Math.max(0, expiresAt - Date.now());
@@ -188,18 +191,53 @@
           const ss = String(totalSeconds % 60).padStart(2, "0");
 
           if (diff <= 0) {
-            targets.forEach((el) => (el.textContent = "Code expired"));
+            if (dashEl) dashEl.textContent = "Session expired";
+            if (callEl) callEl.textContent = "expired";
             clearInterval(countdownInterval);
             handleExpiry();
             return;
           }
-          targets.forEach(
-            (el) => (el.textContent = `Expires in ${mm}:${ss}`),
-          );
+          // Full sentence where there's room (dashboard card); compact
+          // mm:ss inside the labeled chip in the call view, since the
+          // "Code" label there already gives it context.
+          if (dashEl) dashEl.textContent = `Session will expire in ${mm}:${ss}`;
+          if (callEl) callEl.textContent = `${mm}:${ss}`;
         };
 
         tick();
         countdownInterval = setInterval(tick, 1000);
+      }
+
+      // Live call-duration counter — counts UP from the moment the caller's
+      // screen actually starts streaming, independent of the session's
+      // expiry countdown (which counts DOWN toward a fixed deadline).
+      // Useful for the agent to gauge call length, and a natural input if
+      // this ever feeds a CLS call-log entry (duration field) later.
+      function startDurationCounter() {
+        callStartTime = Date.now();
+        const el = document.getElementById("callDuration");
+        if (durationInterval) clearInterval(durationInterval);
+
+        const tick = () => {
+          const elapsedSeconds = Math.floor((Date.now() - callStartTime) / 1000);
+          const hh = Math.floor(elapsedSeconds / 3600);
+          const mm = Math.floor((elapsedSeconds % 3600) / 60);
+          const ss = elapsedSeconds % 60;
+          const mmStr = String(mm).padStart(2, "0");
+          const ssStr = String(ss).padStart(2, "0");
+          el.textContent = hh > 0 ? `${hh}:${mmStr}:${ssStr}` : `${mmStr}:${ssStr}`;
+        };
+
+        tick();
+        durationInterval = setInterval(tick, 1000);
+      }
+
+      function stopDurationCounter() {
+        if (durationInterval) {
+          clearInterval(durationInterval);
+          durationInterval = null;
+        }
+        callStartTime = null;
       }
 
       function handleExpiry() {
@@ -225,25 +263,39 @@
       }
 
       async function createSession() {
-        if (pc) {
-          pc.close();
-          pc = null;
+        const btn = document.getElementById("newSessionBtn");
+
+        // Prevent a fast double-click from firing two overlapping
+        // fetch calls and creating two sessions back to back.
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = "Creating...";
+
+        try {
+          if (pc) {
+            pc.close();
+            pc = null;
+          }
+          if (ws) {
+            ws.close();
+            ws = null;
+          }
+
+          const res = await fetch("/api/create-session", { method: "POST" });
+          const data = await res.json();
+          const code = data.code;
+
+          document.getElementById("codeBlock").classList.remove("hidden");
+          document.getElementById("codeDisplay").textContent = code;
+          setStatus("Waiting for caller to connect...", "waiting");
+          log("Session created: " + code);
+
+          connectWebSocket(code);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
         }
-        if (ws) {
-          ws.close();
-          ws = null;
-        }
-
-        const res = await fetch("/api/create-session", { method: "POST" });
-        const data = await res.json();
-        const code = data.code;
-
-        document.getElementById("codeBlock").classList.remove("hidden");
-        document.getElementById("codeDisplay").textContent = code;
-        setStatus("Waiting for caller to connect...", "waiting");
-        log("Session created: " + code);
-
-        connectWebSocket(code);
       }
 
       async function connectWebSocket(code) {
@@ -256,10 +308,27 @@
         ws.onclose = () => log("Signaling connection closed");
         ws.onerror = (e) => log("WebSocket error: " + e.message);
 
-        await createPeerConnection();
-
+        // IMPORTANT: attach onmessage BEFORE awaiting createPeerConnection().
+        // The server sends "session-info" immediately upon connecting — if
+        // createPeerConnection()'s TURN-credential fetch takes even a
+        // fraction of a second, that message can arrive before onmessage
+        // is attached, and WebSocket does not buffer/replay missed events.
+        // Attaching it first guarantees nothing sent by the server can be
+        // silently dropped. (pc-dependent messages just no-op if pc isn't
+        // ready yet, which in practice never happens before it's needed.)
         ws.onmessage = async (event) => {
           const msg = JSON.parse(event.data);
+
+          if (msg.type === "session-info") {
+            pendingExpiresAt = msg.expiresAt;
+            startCountdown(pendingExpiresAt);
+            return;
+          }
+
+          if (!pc) {
+            log("Received " + msg.type + " before peer connection was ready — ignoring");
+            return;
+          }
 
           if (msg.type === "offer") {
             log("Received offer from caller");
@@ -277,10 +346,10 @@
           } else if (msg.type === "stop") {
             log("Caller stopped sharing");
             resetView("Caller ended the session.", "ended");
-          } else if (msg.type === "session-info") {
-            pendingExpiresAt = msg.expiresAt;
           }
         };
+
+        await createPeerConnection();
       }
 
       async function createPeerConnection() {
@@ -300,14 +369,16 @@
           const video = document.getElementById("remoteVideo");
           video.srcObject = event.streams[0];
 
-          // Defensive guard: this is a one-way live view — the agent should
-          // never be able to pause it (accidental click, spacebar, etc).
           video.onpause = () => {
             if (video.srcObject) video.play().catch(() => {});
           };
 
           showCallView();
+          startDurationCounter();
 
+          // Countdown starts here, deliberately — only once the caller has
+          // actually connected and their screen is showing, not from the
+          // moment the session code was generated.
           if (pendingExpiresAt) {
             startCountdown(pendingExpiresAt);
           }
@@ -339,9 +410,6 @@
         }
       }
 
-      // Agent explicitly hangs up — tells the caller's side and the server
-      // to end the session too (main.go treats a "stop" from either role
-      // the same way), then returns to the dashboard.
       function endCall() {
         log("Ending call");
         try {
@@ -360,6 +428,7 @@
           clearInterval(countdownInterval);
           countdownInterval = null;
         }
+        stopDurationCounter();
         pendingExpiresAt = null;
 
         if (pc) {
@@ -378,8 +447,6 @@
         const video = document.getElementById("remoteVideo");
         if (!video.srcObject) return;
 
-        // Request fullscreen on the WRAPPER div, not the <video> element,
-        // so browsers don't overlay their own native play/pause controls.
         const el = document.getElementById("videoWrapper");
         if (el.requestFullscreen) {
           el.requestFullscreen();
