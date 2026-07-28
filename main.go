@@ -2,14 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 var upgrader = websocket.Upgrader{
@@ -158,12 +161,74 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func turnCredentialsHandler(w http.ResponseWriter, r *http.Request) {
+	secretKey := os.Getenv("METERED_SECRET_KEY")
+	appDomain := os.Getenv("METERED_APP_DOMAIN")
+
+	if secretKey == "" || appDomain == "" {
+		http.Error(w, "TURN credentials not configured", http.StatusInternalServerError)
+		return
+	}
+
+	// Step 1: create a short-lived credential using the secret key
+	createURL := "https://" + appDomain + "/api/v1/turn/credential?secretKey=" + secretKey
+	body := strings.NewReader(`{"expiryInSeconds": 600, "label": "screen-assist-session"}`)
+
+	createReq, err := http.NewRequest("POST", createURL, body)
+	if err != nil {
+		http.Error(w, "failed to build TURN request", http.StatusInternalServerError)
+		return
+	}
+	createReq.Header.Set("Content-Type", "application/json")
+
+	createResp, err := http.DefaultClient.Do(createReq)
+	if err != nil {
+		log.Println("Failed to create TURN credential:", err)
+		http.Error(w, "failed to create TURN credential", http.StatusBadGateway)
+		return
+	}
+	defer createResp.Body.Close()
+
+	var created struct {
+		ApiKey string `json:"apiKey"`
+	}
+	if err := json.NewDecoder(createResp.Body).Decode(&created); err != nil || created.ApiKey == "" {
+		log.Println("Unexpected response creating TURN credential:", err)
+		http.Error(w, "failed to parse TURN credential creation response", http.StatusBadGateway)
+		return
+	}
+
+	// Step 2: fetch the actual ICE servers array using that apiKey
+	credsURL := "https://" + appDomain + "/api/v1/turn/credentials?apiKey=" + created.ApiKey
+
+	credsResp, err := http.Get(credsURL)
+	if err != nil {
+		log.Println("Failed to fetch TURN ICE servers:", err)
+		http.Error(w, "failed to fetch TURN credentials", http.StatusBadGateway)
+		return
+	}
+	defer credsResp.Body.Close()
+
+	credsBody, err := io.ReadAll(credsResp.Body)
+	if err != nil {
+		http.Error(w, "failed to read TURN credentials", http.StatusBadGateway)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(credsBody)
+}
+
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/api/create-session", createSessionHandler)
+	http.HandleFunc("/api/turn-credentials", turnCredentialsHandler)
 	http.HandleFunc("/ws", handleWS)
 
 	log.Println("server listening on :8080")

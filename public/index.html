@@ -143,9 +143,8 @@
           );
         };
 
-        pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
+        const iceServers = await getIceServers();
+        pc = new RTCPeerConnection({ iceServers });
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -182,6 +181,22 @@
             pendingExpiresAt = msg.expiresAt;
           }
         };
+      }
+
+      async function getIceServers() {
+        try {
+          const res = await fetch("/api/turn-credentials");
+          if (!res.ok) throw new Error("bad response");
+          const turnServers = await res.json();
+          log("TURN credentials loaded");
+          return [{ urls: "stun:stun.l.google.com:19302" }, ...turnServers];
+        } catch (e) {
+          log(
+            "Failed to load TURN credentials, falling back to STUN only: " +
+              e.message,
+          );
+          return [{ urls: "stun:stun.l.google.com:19302" }];
+        }
       }
 
       async function startShare() {

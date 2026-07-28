@@ -134,7 +134,7 @@
         connectWebSocket(code);
       }
 
-      function connectWebSocket(code) {
+      async function connectWebSocket(code) {
         const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=agent`;
         ws = new WebSocket(wsUrl);
@@ -144,9 +144,36 @@
         ws.onclose = () => log("Signaling connection closed");
         ws.onerror = (e) => log("WebSocket error: " + e.message);
 
-        pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
+        await createPeerConnection();
+
+        ws.onmessage = async (event) => {
+          const msg = JSON.parse(event.data);
+
+          if (msg.type === "offer") {
+            log("Received offer from caller");
+            await pc.setRemoteDescription(msg.offer);
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            send({ type: "answer", answer: pc.localDescription });
+            log("Sent answer");
+          } else if (msg.type === "ice-candidate") {
+            try {
+              await pc.addIceCandidate(msg.candidate);
+            } catch (e) {
+              log("Failed to add ICE candidate: " + e.message);
+            }
+          } else if (msg.type === "stop") {
+            log("Caller stopped sharing");
+            resetView("Caller ended the session.", "ended");
+          } else if (msg.type === "session-info") {
+            pendingExpiresAt = msg.expiresAt;
+          }
+        };
+      }
+
+      async function createPeerConnection() {
+        const iceServers = await getIceServers();
+        pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: "relay" });
 
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -175,30 +202,22 @@
             resetView("Caller disconnected.", "ended");
           }
         };
+      }
 
-        ws.onmessage = async (event) => {
-          const msg = JSON.parse(event.data);
-
-          if (msg.type === "offer") {
-            log("Received offer from caller");
-            await pc.setRemoteDescription(msg.offer);
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            send({ type: "answer", answer: pc.localDescription });
-            log("Sent answer");
-          } else if (msg.type === "ice-candidate") {
-            try {
-              await pc.addIceCandidate(msg.candidate);
-            } catch (e) {
-              log("Failed to add ICE candidate: " + e.message);
-            }
-          } else if (msg.type === "stop") {
-            log("Caller stopped sharing");
-            resetView("Caller ended the session.", "ended");
-          } else if (msg.type === "session-info") {
-            pendingExpiresAt = msg.expiresAt;
-          }
-        };
+      async function getIceServers() {
+        try {
+          const res = await fetch("/api/turn-credentials");
+          if (!res.ok) throw new Error("bad response");
+          const turnServers = await res.json();
+          log("TURN credentials loaded");
+          return [{ urls: "stun:stun.l.google.com:19302" }, ...turnServers];
+        } catch (e) {
+          log(
+            "Failed to load TURN credentials, falling back to STUN only: " +
+              e.message,
+          );
+          return [{ urls: "stun:stun.l.google.com:19302" }];
+        }
       }
 
       function resetView(statusText, type) {
