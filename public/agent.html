@@ -193,7 +193,7 @@
     let durationInterval, callStartTime;
 
     document.getElementById("callerLink").textContent =
-      "https://cls-connect.onrender.com" + "/";
+      location.origin + "/";
 
     function copyCallerLink() {
       const link = document.getElementById("callerLink").textContent;
@@ -309,8 +309,8 @@
       // fetch calls and creating two sessions back to back.
       if (btn.disabled) return;
       btn.disabled = true;
-      const originalText = btn.textContent;
-      btn.textContent = "Creating...";
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = "Creating...";
 
       try {
         if (pc) {
@@ -328,13 +328,14 @@
 
         document.getElementById("codeBlock").classList.remove("hidden");
         document.getElementById("codeDisplay").textContent = code;
+        document.getElementById("callDuration").textContent = "00:00:00";
         setStatus("Waiting for caller to connect...", "waiting");
         log("Session created: " + code);
 
         connectWebSocket(code);
       } finally {
         btn.disabled = false;
-        btn.textContent = originalText;
+        btn.innerHTML = originalHTML;
       }
     }
 
@@ -463,7 +464,8 @@
       video.onpause = null;
       video.srcObject = null;
       setStatus(statusText, type);
-      document.getElementById("codeBlock").classList.add("hidden");
+      document.getElementById("codeDisplay").textContent = "- - - - - -";
+      // Removed hiding the codeBlock so the duration from the previous session stays visible
       if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
