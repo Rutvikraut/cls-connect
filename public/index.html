@@ -12,13 +12,12 @@
         <div class="brand-name">CLS <span>Connect</span></div>
         <div class="beta-tag">BETA</div>
       </div>
-      </div>
     </div>
 
     <div class="page page-wide">
-      <div class="page-header center">
+      <div class="page-header">
         <h1>Connect to Support</h1>
-        <p>Enter the code your support agent gave you</p>
+        <p>Enter the code your support agent gave you to begin the session.</p>
       </div>
 
       <div class="layout-grid">
@@ -42,7 +41,7 @@
               <div class="step-body">
                 <div class="step-title">Get your code</div>
                 <div class="step-text">
-                  They'll read you a 6-digit code out loud.
+                  They'll read you a 6-digit code out loud.<br/>Make sure you're ready to type.
                 </div>
               </div>
             </div>
@@ -52,7 +51,7 @@
               <div class="step-body">
                 <div class="step-title">Enter it and connect</div>
                 <div class="step-text">
-                  Type the code into the box and click Connect.
+                  Type the code into the box and click Connect to authenticate.
                 </div>
               </div>
             </div>
@@ -62,32 +61,36 @@
               <div class="step-body">
                 <div class="step-title">Share your screen</div>
                 <div class="step-text">
-                  Choose the screen or tab to show, then click Share. The
-                  agent can only view — never control your device, camera,
-                  or microphone.
+                  Choose the window to share. The agent can only view — never control.
                 </div>
               </div>
             </div>
           </div>
+          
+          <div class="encrypted-block">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <div>Encrypted connection. No software is installed on your device.</div>
+          </div>
         </aside>
 
         <div class="main-col">
-          <div class="card center">
-            <input
-              type="text"
-              id="codeInput"
-              class="code-input"
-              maxlength="6"
-              placeholder="000000"
-              inputmode="numeric"
-              autocomplete="off"
-            />
+          <div class="card center" style="text-align: center;">
+            <div class="code-inputs-container" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; margin-top: 8px;">
+              <input type="text" maxlength="1" class="digit-box" />
+              <input type="text" maxlength="1" class="digit-box" />
+              <input type="text" maxlength="1" class="digit-box" />
+              <span style="color: #cbd5e1; font-weight: bold; font-size: 20px; margin: 0 4px;">-</span>
+              <input type="text" maxlength="1" class="digit-box" />
+              <input type="text" maxlength="1" class="digit-box" />
+              <input type="text" maxlength="1" class="digit-box" />
+            </div>
+            <div class="code-hint" style="margin-bottom: 24px; font-weight: 600; font-size: 11px; color: #475569;">Enter Code To Connect</div>
+            <input type="hidden" id="codeInput" />
             <button
               class="btn btn-primary btn-block"
-              style="margin-top: 14px"
               onclick="connect()"
             >
-              Connect
+              Connect &rarr;
             </button>
 
             <div style="margin-top: 14px">
@@ -97,17 +100,34 @@
           </div>
 
           <div class="card">
-            <div class="card-title">Your Screen</div>
+            <div class="card-title" style="display: flex; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--orange);"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                Your Screen
+              </span>
+              <span style="font-weight: normal; font-size: 12px; color: var(--text-muted); font-style: italic;">Not yet sharing</span>
+            </div>
             <div class="video-wrapper">
-              <video id="localVideo" autoplay muted playsinline tabindex="-1" disablePictureInPicture></video>
+              <div class="video-placeholder" id="videoPlaceholder">
+                <div class="placeholder-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </div>
+                <div>Connect with a code to enable screen sharing</div>
+              </div>
+              <video id="localVideo" autoplay muted playsinline tabindex="-1" disablePictureInPicture class="hidden"></video>
             </div>
           </div>
-
-          <div class="card">
-            <div class="card-title">Activity Log</div>
-            <div id="log" class="log-box"></div>
-          </div>
         </div>
+
+        <aside class="activity-panel" style="position: sticky; top: 20px;">
+          <div class="card" style="display: flex; flex-direction: column; max-height: calc(100vh - 40px);">
+            <div class="card-title" style="text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+              Activity Log
+              <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--orange);"></div>
+            </div>
+            <div id="log" class="log-box" style="border: none; background: transparent; padding: 10px 0; max-height: none; overflow-y: auto; flex: 1;"></div>
+          </div>
+        </aside>
       </div>
     </div>
 
@@ -126,16 +146,40 @@
 
       // ---------- Auto-focus, digits-only, auto-submit ----------
       window.addEventListener("DOMContentLoaded", () => {
-        const input = document.getElementById("codeInput");
-        input.focus();
+        const boxes = document.querySelectorAll(".digit-box");
+        const hiddenInput = document.getElementById("codeInput");
+        if (boxes.length > 0) boxes[0].focus();
 
-        input.addEventListener("input", () => {
-          // Strip anything that isn't a digit as the user types/pastes.
-          const digitsOnly = input.value.replace(/\D/g, "").slice(0, 6);
-          if (digitsOnly !== input.value) {
-            input.value = digitsOnly;
-          }
+        boxes.forEach((box, index) => {
+          box.addEventListener("input", (e) => {
+            box.value = box.value.replace(/[^0-9]/g, "");
+            if (box.value && index < boxes.length - 1) {
+              boxes[index + 1].focus();
+            }
+            updateHidden();
+          });
+          box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !box.value && index > 0) {
+              boxes[index - 1].focus();
+            }
+          });
+          box.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+            for (let i = 0; i < text.length && index + i < boxes.length; i++) {
+              boxes[index + i].value = text[i];
+            }
+            const focusIndex = Math.min(index + text.length, boxes.length - 1);
+            boxes[focusIndex].focus();
+            updateHidden();
+          });
         });
+
+        function updateHidden() {
+          let code = "";
+          boxes.forEach(b => code += b.value);
+          hiddenInput.value = code;
+        }
       });
 
       function startCountdown(expiresAtISO) {
@@ -284,6 +328,8 @@
         track.onended = () => stopSharing();
 
         document.getElementById("localVideo").srcObject = localStream;
+        document.getElementById("localVideo").classList.remove("hidden");
+        document.getElementById("videoPlaceholder").classList.add("hidden");
         localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
         log("Screen share started");
 
@@ -322,9 +368,15 @@
         }
 
         document.getElementById("localVideo").srcObject = null;
+        document.getElementById("localVideo").classList.add("hidden");
+        if (document.getElementById("videoPlaceholder")) {
+          document.getElementById("videoPlaceholder").classList.remove("hidden");
+        }
         setStatus(statusText, statusType);
         document.getElementById("codeInput").value = "";
-        document.getElementById("codeInput").focus();
+        document.querySelectorAll(".digit-box").forEach(b => b.value = "");
+        const boxes = document.querySelectorAll(".digit-box");
+        if (boxes.length > 0) boxes[0].focus();
       }
 
       function stopSharing() {

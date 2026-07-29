@@ -231,20 +231,59 @@ body {
 
 /* ---------- Code input (user page) ---------- */
 .code-input {
-  font-size: 26px;
-  letter-spacing: 8px;
-  text-align: center;
-  padding: 14px;
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--navy);
-  font-weight: 700;
+  display: none;
 }
-.code-input:focus {
+
+.digit-box {
+  width: 46px;
+  height: 56px;
+  font-size: 26px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dark);
+  font-weight: 400;
+  background: var(--white);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.digit-box:focus {
   outline: none;
-  border-color: var(--orange);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  border-color: var(--navy);
+}
+
+.encrypted-block {
+  margin-top: 20px;
+  background: #f0f4f8;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--navy-light);
+  line-height: 1.4;
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #64748b;
+  font-size: 13px;
+  gap: 16px;
+}
+.placeholder-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
 }
 
 /* ---------- Video (small preview / caller's own page) ---------- */
@@ -313,11 +352,11 @@ video::-webkit-media-controls-panel {
 .hidden { display: none !important; }
 
 /* ---------- Two-column layout with instructions panel ---------- */
-.page-wide { max-width: 1040px; }
+.page-wide { max-width: 1300px; }
 
 .layout-grid {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px 1fr 320px;
   gap: 20px;
   align-items: start;
 }
@@ -500,3 +539,106 @@ video::-webkit-media-controls-panel {
   padding: 10px 24px;
 }
 .btn-end-call:hover { background: #a53224; }
+
+/* --- Agent Dashboard Specifics --- */
+.session-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+.stat-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: var(--white);
+}
+.stat-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 1px;
+}
+
+.secure-box {
+  background: var(--navy);
+  color: var(--white);
+  padding: 20px;
+  border-radius: var(--radius);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.secure-box-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.secure-box-text {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+  position: relative;
+  z-index: 2;
+}
+.secure-box::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  bottom: -20px;
+  width: 80px;
+  height: 80px;
+  background: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>') no-repeat center;
+  background-size: contain;
+  opacity: 0.1;
+  z-index: 1;
+}
+
+.terminal-card {
+  background: #0f172a;
+  border-radius: var(--radius);
+  color: #94a3b8;
+  font-family: "JetBrains Mono", monospace;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-top: 20px;
+}
+.terminal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #e2e8f0;
+  text-transform: uppercase;
+}
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+.terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.terminal-dot.red { background: #ef4444; }
+.terminal-dot.yellow { background: #f59e0b; }
+.terminal-dot.green { background: #22c55e; }
+
+.terminal-card .log-box {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  padding: 16px;
+  max-height: 250px;
+}

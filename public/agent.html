@@ -1,30 +1,41 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>CLS - Connect</title>
-    <link rel="stylesheet" href="styles.css?v=3" />
-  </head>
-  <body>
-    <div class="topbar">
-      <div class="brand">
-        <div class="brand-badge">CLS</div>
-        <div class="brand-name">CLS <span>Connect</span></div>
-        <div class="beta-tag">BETA</div>
-      </div>
-      </div>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>CLS - Connect</title>
+  <link rel="stylesheet" href="styles.css?v=3" />
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">CLS</div>
+      <div class="brand-name">CLS <span>Connect</span></div>
+      <div class="beta-tag">BETA</div>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============ START / DASHBOARD VIEW ============ -->
+  <div class="page page-wide" id="dashboardView">
+    <div class="page-header">
+      <h1>Support Dashboard</h1>
+      <p>Generate a code, read it to the caller, view their screen.</p>
     </div>
 
-    <!-- ============ START / DASHBOARD VIEW ============ -->
-    <div class="page page-wide" id="dashboardView">
-      <div class="page-header">
-        <h1>Agent Dashboard</h1>
-        <p>Generate a code, read it to the caller, view their screen.</p>
-      </div>
-
-      <div class="layout-grid">
+    <div class="layout-grid" style="grid-template-columns: 340px 1fr;">
+      <div class="left-col">
         <aside class="instructions-panel">
-          <div class="instructions-title">How to Start a Session</div>
+          <div class="instructions-title" style="display: flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            HOW TO START A SESSION
+          </div>
 
           <div class="steps">
             <div class="step">
@@ -37,12 +48,7 @@
                 </div>
                 <div class="link-box">
                   <span id="callerLink"></span>
-                  <button
-                    class="copy-btn"
-                    id="copyLinkBtn"
-                    onclick="copyCallerLink()"
-                    title="Copy link"
-                  >
+                  <button class="copy-btn" id="copyLinkBtn" onclick="copyCallerLink()" title="Copy link">
                     &#128203;
                   </button>
                 </div>
@@ -74,364 +80,239 @@
               <div class="step-body">
                 <div class="step-title">They share their screen</div>
                 <div class="step-text">
-                  Once approved, their screen fills your browser window
-                  automatically — view only, nothing you do controls their
-                  device.
+                  Once approved, their screen fills your
+                  window automatically.
                 </div>
               </div>
             </div>
           </div>
         </aside>
 
-        <div class="main-col">
-          <div class="card">
-            <div class="card-title">Session</div>
+        <div class="secure-box">
+          <div class="secure-box-title">Secure Connection</div>
+          <div class="secure-box-text">All sessions are end-to-end encrypted and require explicit user consent at every
+            step.</div>
+        </div>
+      </div>
+
+      <div class="main-col">
+        <div class="card" style="padding: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h2 style="margin: 0 0 8px; font-size: 18px; color: var(--navy);">Session Management</h2>
+              <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                <span
+                  style="display: inline-block; width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%;"></span>
+                <span id="sessionStatusText">System ready. No active session.</span>
+              </div>
+            </div>
             <button class="btn btn-primary" id="newSessionBtn" onclick="createSession()">
-              + New Session
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                style="margin-right: 4px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              New Session
             </button>
+          </div>
 
-            <div id="codeBlock" class="hidden">
-              <div class="code-display" id="codeDisplay"></div>
-              <div class="code-hint">Read this code to the caller</div>
-              <div class="timer-text" id="timerDash"></div>
+          <div class="session-stats" id="codeBlock">
+            <div class="stat-box">
+              <div class="stat-title">Session Code</div>
+              <div class="stat-value" id="codeDisplay">- - - - - -</div>
             </div>
-
-            <div style="margin-top: 10px">
-              <span id="statusPill" class="status-pill hidden"></span>
+            <div class="stat-box">
+              <div class="stat-title">Duration</div>
+              <div class="stat-value" id="callDuration">00:00:00</div>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-title">Activity Log</div>
-            <div id="log" class="log-box"></div>
+          <div style="margin-top: 14px; text-align: center;">
+            <span id="statusPill" class="status-pill hidden"></span>
           </div>
         </div>
+
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                style="color: var(--orange);">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+              CONNECTION LOGS
+            </span>
+            <div class="terminal-dots">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot yellow"></div>
+              <div class="terminal-dot green"></div>
+            </div>
+          </div>
+          <div id="log" class="log-box terminal-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FULL-SCREEN CALL VIEW (Meet-style) ============ -->
+  <div class="call-view hidden" id="callView">
+    <div class="call-topbar">
+      <div class="call-status">
+        <span class="status-pill connected">
+          <span class="dot"></span>Viewing caller's screen
+        </span>
+      </div>
+      <div class="call-timers">
+        <span class="timer-chip expiry-chip">
+          <span class="timer-chip-label">Call will end in</span>
+          <span id="timerCall"></span>
+        </span>
       </div>
     </div>
 
-    <!-- ============ FULL-SCREEN CALL VIEW (Meet-style) ============ -->
-    <div class="call-view hidden" id="callView">
-      <div class="call-topbar">
-        <div class="call-status">
-          <span class="status-pill connected">
-            <span class="dot"></span>Viewing caller's screen
-          </span>
-        </div>
-        <div class="call-timers">
-          <span class="timer-chip expiry-chip">
-            <span class="timer-chip-label">Call will end in</span>
-            <span id="timerCall"></span>
-          </span>
-        </div>
-      </div>
-
-      <div class="call-video-wrap" id="videoWrapper">
-        <video
-          id="remoteVideo"
-          autoplay
-          playsinline
-          tabindex="-1"
-          disablePictureInPicture
-          controlsList="nodownload noremoteplayback"
-          ondblclick="goFullscreen()"
-        ></video>
-      </div>
-
-      <div class="call-bottombar">
-        <button class="btn btn-outline" onclick="goFullscreen()">
-          ⛶ Fullscreen
-        </button>
-        <button class="btn btn-end-call" onclick="endCall()">
-          ✕ End Call
-        </button>
-      </div>
+    <div class="call-video-wrap" id="videoWrapper">
+      <video id="remoteVideo" autoplay playsinline tabindex="-1" disablePictureInPicture
+        controlsList="nodownload noremoteplayback" ondblclick="goFullscreen()"></video>
     </div>
 
-    <div class="footer">© 2026 CLS - Connect  ·  All rights reserved.</div>
+    <div class="call-bottombar">
+      <button class="btn btn-outline" onclick="goFullscreen()">
+        ⛶ Fullscreen
+      </button>
+      <button class="btn btn-end-call" onclick="endCall()">
+        ✕ End Call
+      </button>
+    </div>
+  </div>
 
-    <script>
-      let pc, ws, countdownInterval, pendingExpiresAt;
-      let durationInterval, callStartTime;
+  <div class="footer">© 2026 CLS - Connect · All rights reserved.</div>
 
-      document.getElementById("callerLink").textContent =
-        "https://cls-connect.onrender.com" + "/";
+  <script>
+    let pc, ws, countdownInterval, pendingExpiresAt;
+    let durationInterval, callStartTime;
 
-      function copyCallerLink() {
-        const link = document.getElementById("callerLink").textContent;
+    document.getElementById("callerLink").textContent =
+      "https://cls-connect.onrender.com" + "/";
 
-        navigator.clipboard
-          .writeText(link)
-          .then(() => {
-            const btn = document.getElementById("copyLinkBtn");
-            btn.innerHTML = "&#10003;";
-            setTimeout(() => {
-              btn.innerHTML = "&#128203;";
-            }, 1500);
-          })
-          .catch(() => log("Could not copy link automatically"));
-      }
+    function copyCallerLink() {
+      const link = document.getElementById("callerLink").textContent;
 
-      function log(msg) {
-        const el = document.getElementById("log");
-        el.textContent += msg + "\n";
-        el.scrollTop = el.scrollHeight;
-        console.log(msg);
-      }
+      navigator.clipboard
+        .writeText(link)
+        .then(() => {
+          const btn = document.getElementById("copyLinkBtn");
+          btn.innerHTML = "&#10003;";
+          setTimeout(() => {
+            btn.innerHTML = "&#128203;";
+          }, 1500);
+        })
+        .catch(() => log("Could not copy link automatically"));
+    }
 
-      function startCountdown(expiresAtISO) {
-        const expiresAt = new Date(expiresAtISO).getTime();
-        if (countdownInterval) clearInterval(countdownInterval);
+    function log(msg) {
+      const el = document.getElementById("log");
+      el.textContent += msg + "\n";
+      el.scrollTop = el.scrollHeight;
+      console.log(msg);
+    }
 
-        const dashEl = document.getElementById("timerDash");
-        const callEl = document.getElementById("timerCall");
+    function startCountdown(expiresAtISO) {
+      const expiresAt = new Date(expiresAtISO).getTime();
+      if (countdownInterval) clearInterval(countdownInterval);
 
-        const tick = () => {
-          const diff = Math.max(0, expiresAt - Date.now());
-          const totalSeconds = Math.floor(diff / 1000);
-          const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
-          const ss = String(totalSeconds % 60).padStart(2, "0");
+      const dashEl = document.getElementById("timerDash");
+      const callEl = document.getElementById("timerCall");
 
-          if (diff <= 0) {
-            if (dashEl) dashEl.textContent = "Session expired";
-            if (callEl) callEl.textContent = "expired";
-            clearInterval(countdownInterval);
-            handleExpiry();
-            return;
-          }
-          // Full sentence where there's room (dashboard card); compact
-          // mm:ss inside the labeled chip in the call view, since the
-          // "Code" label there already gives it context.
-          if (dashEl) dashEl.textContent = `Session will expire in ${mm}:${ss}`;
-          if (callEl) callEl.textContent = `${mm}:${ss}`;
-        };
+      const tick = () => {
+        const diff = Math.max(0, expiresAt - Date.now());
+        const totalSeconds = Math.floor(diff / 1000);
+        const mm = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+        const ss = String(totalSeconds % 60).padStart(2, "0");
 
-        tick();
-        countdownInterval = setInterval(tick, 1000);
-      }
-
-      // Live call-duration counter — counts UP from the moment the caller's
-      // screen actually starts streaming, independent of the session's
-      // expiry countdown (which counts DOWN toward a fixed deadline).
-      // Useful for the agent to gauge call length, and a natural input if
-      // this ever feeds a CLS call-log entry (duration field) later.
-      function startDurationCounter() {
-        callStartTime = Date.now();
-        const el = document.getElementById("callDuration");
-        if (durationInterval) clearInterval(durationInterval);
-
-        const tick = () => {
-          const elapsedSeconds = Math.floor((Date.now() - callStartTime) / 1000);
-          const hh = Math.floor(elapsedSeconds / 3600);
-          const mm = Math.floor((elapsedSeconds % 3600) / 60);
-          const ss = elapsedSeconds % 60;
-          const mmStr = String(mm).padStart(2, "0");
-          const ssStr = String(ss).padStart(2, "0");
-          el.textContent = hh > 0 ? `${hh}:${mmStr}:${ssStr}` : `${mmStr}:${ssStr}`;
-        };
-
-        tick();
-        durationInterval = setInterval(tick, 1000);
-      }
-
-      function stopDurationCounter() {
-        if (durationInterval) {
-          clearInterval(durationInterval);
-          durationInterval = null;
-        }
-        callStartTime = null;
-      }
-
-      function handleExpiry() {
-        log("Session code expired");
-        resetView("Session expired.", "error");
-      }
-
-      function setStatus(text, type) {
-        const pill = document.getElementById("statusPill");
-        pill.className = "status-pill " + type;
-        pill.innerHTML = '<span class="dot"></span>' + text;
-        pill.classList.remove("hidden");
-      }
-
-      function showCallView() {
-        document.getElementById("dashboardView").classList.add("hidden");
-        document.getElementById("callView").classList.remove("hidden");
-      }
-
-      function showDashboard() {
-        document.getElementById("callView").classList.add("hidden");
-        document.getElementById("dashboardView").classList.remove("hidden");
-      }
-
-      async function createSession() {
-        const btn = document.getElementById("newSessionBtn");
-
-        // Prevent a fast double-click from firing two overlapping
-        // fetch calls and creating two sessions back to back.
-        if (btn.disabled) return;
-        btn.disabled = true;
-        const originalText = btn.textContent;
-        btn.textContent = "Creating...";
-
-        try {
-          if (pc) {
-            pc.close();
-            pc = null;
-          }
-          if (ws) {
-            ws.close();
-            ws = null;
-          }
-
-          const res = await fetch("/api/create-session", { method: "POST" });
-          const data = await res.json();
-          const code = data.code;
-
-          document.getElementById("codeBlock").classList.remove("hidden");
-          document.getElementById("codeDisplay").textContent = code;
-          setStatus("Waiting for caller to connect...", "waiting");
-          log("Session created: " + code);
-
-          connectWebSocket(code);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = originalText;
-        }
-      }
-
-      async function connectWebSocket(code) {
-        const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=agent`;
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () =>
-          log("Connected to signaling server, waiting for caller...");
-        ws.onclose = () => log("Signaling connection closed");
-        ws.onerror = (e) => log("WebSocket error: " + e.message);
-
-        // IMPORTANT: attach onmessage BEFORE awaiting createPeerConnection().
-        // The server sends "session-info" immediately upon connecting — if
-        // createPeerConnection()'s TURN-credential fetch takes even a
-        // fraction of a second, that message can arrive before onmessage
-        // is attached, and WebSocket does not buffer/replay missed events.
-        // Attaching it first guarantees nothing sent by the server can be
-        // silently dropped. (pc-dependent messages just no-op if pc isn't
-        // ready yet, which in practice never happens before it's needed.)
-        ws.onmessage = async (event) => {
-          const msg = JSON.parse(event.data);
-
-          if (msg.type === "session-info") {
-            pendingExpiresAt = msg.expiresAt;
-            startCountdown(pendingExpiresAt);
-            return;
-          }
-
-          if (!pc) {
-            log("Received " + msg.type + " before peer connection was ready — ignoring");
-            return;
-          }
-
-          if (msg.type === "offer") {
-            log("Received offer from caller");
-            await pc.setRemoteDescription(msg.offer);
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            send({ type: "answer", answer: pc.localDescription });
-            log("Sent answer");
-          } else if (msg.type === "ice-candidate") {
-            try {
-              await pc.addIceCandidate(msg.candidate);
-            } catch (e) {
-              log("Failed to add ICE candidate: " + e.message);
-            }
-          } else if (msg.type === "stop") {
-            log("Caller stopped sharing");
-            resetView("Caller ended the session.", "ended");
-          }
-        };
-
-        await createPeerConnection();
-      }
-
-      async function createPeerConnection() {
-        const iceServers = await getIceServers();
-        pc = new RTCPeerConnection({ iceServers });
-
-        pc.onicecandidate = (event) => {
-          if (event.candidate) {
-            send({ type: "ice-candidate", candidate: event.candidate });
-          } else {
-            log("ICE gathering complete");
-          }
-        };
-
-        pc.ontrack = (event) => {
-          log("Caller's screen received!");
-          const video = document.getElementById("remoteVideo");
-          video.srcObject = event.streams[0];
-
-          video.onpause = () => {
-            if (video.srcObject) video.play().catch(() => {});
-          };
-
-          showCallView();
-          startDurationCounter();
-
-          // Countdown starts here, deliberately — only once the caller has
-          // actually connected and their screen is showing, not from the
-          // moment the session code was generated.
-          if (pendingExpiresAt) {
-            startCountdown(pendingExpiresAt);
-          }
-        };
-
-        pc.onconnectionstatechange = () => {
-          log("Connection state: " + pc.connectionState);
-          if (
-            ["disconnected", "failed", "closed"].includes(pc.connectionState)
-          ) {
-            resetView("Caller disconnected.", "ended");
-          }
-        };
-      }
-
-      async function getIceServers() {
-        try {
-          const res = await fetch("/api/turn-credentials");
-          if (!res.ok) throw new Error("bad response");
-          const turnServers = await res.json();
-          log("TURN credentials loaded");
-          return [{ urls: "stun:stun.l.google.com:19302" }, ...turnServers];
-        } catch (e) {
-          log(
-            "Failed to load TURN credentials, falling back to STUN only: " +
-              e.message,
-          );
-          return [{ urls: "stun:stun.l.google.com:19302" }];
-        }
-      }
-
-      function endCall() {
-        log("Ending call");
-        try {
-          send({ type: "stop" });
-        } catch (e) {}
-        resetView("Session ended.", "ended");
-      }
-
-      function resetView(statusText, type) {
-        const video = document.getElementById("remoteVideo");
-        video.onpause = null;
-        video.srcObject = null;
-        setStatus(statusText, type);
-        document.getElementById("codeBlock").classList.add("hidden");
-        if (countdownInterval) {
+        if (diff <= 0) {
+          if (dashEl) dashEl.textContent = "Session expired";
+          if (callEl) callEl.textContent = "expired";
           clearInterval(countdownInterval);
-          countdownInterval = null;
+          handleExpiry();
+          return;
         }
-        stopDurationCounter();
-        pendingExpiresAt = null;
+        // Full sentence where there's room (dashboard card); compact
+        // mm:ss inside the labeled chip in the call view, since the
+        // "Code" label there already gives it context.
+        if (dashEl) dashEl.textContent = `Session will expire in ${mm}:${ss}`;
+        if (callEl) callEl.textContent = `${mm}:${ss}`;
+      };
 
+      tick();
+      countdownInterval = setInterval(tick, 1000);
+    }
+
+    // Live call-duration counter — counts UP from the moment the caller's
+    // screen actually starts streaming, independent of the session's
+    // expiry countdown (which counts DOWN toward a fixed deadline).
+    // Useful for the agent to gauge call length, and a natural input if
+    // this ever feeds a CLS call-log entry (duration field) later.
+    function startDurationCounter() {
+      callStartTime = Date.now();
+      const el = document.getElementById("callDuration");
+      if (durationInterval) clearInterval(durationInterval);
+
+      const tick = () => {
+        const elapsedSeconds = Math.floor((Date.now() - callStartTime) / 1000);
+        const hh = Math.floor(elapsedSeconds / 3600);
+        const mm = Math.floor((elapsedSeconds % 3600) / 60);
+        const ss = elapsedSeconds % 60;
+        const mmStr = String(mm).padStart(2, "0");
+        const ssStr = String(ss).padStart(2, "0");
+        el.textContent = hh > 0 ? `${hh}:${mmStr}:${ssStr}` : `${mmStr}:${ssStr}`;
+      };
+
+      tick();
+      durationInterval = setInterval(tick, 1000);
+    }
+
+    function stopDurationCounter() {
+      if (durationInterval) {
+        clearInterval(durationInterval);
+        durationInterval = null;
+      }
+      callStartTime = null;
+    }
+
+    function handleExpiry() {
+      log("Session code expired");
+      resetView("Session expired.", "error");
+    }
+
+    function setStatus(text, type) {
+      const pill = document.getElementById("statusPill");
+      pill.className = "status-pill " + type;
+      pill.innerHTML = '<span class="dot"></span>' + text;
+      pill.classList.remove("hidden");
+    }
+
+    function showCallView() {
+      document.getElementById("dashboardView").classList.add("hidden");
+      document.getElementById("callView").classList.remove("hidden");
+    }
+
+    function showDashboard() {
+      document.getElementById("callView").classList.add("hidden");
+      document.getElementById("dashboardView").classList.remove("hidden");
+    }
+
+    async function createSession() {
+      const btn = document.getElementById("newSessionBtn");
+
+      // Prevent a fast double-click from firing two overlapping
+      // fetch calls and creating two sessions back to back.
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = "Creating...";
+
+      try {
         if (pc) {
           pc.close();
           pc = null;
@@ -441,30 +322,189 @@
           ws = null;
         }
 
-        showDashboard();
-      }
+        const res = await fetch("/api/create-session", { method: "POST" });
+        const data = await res.json();
+        const code = data.code;
 
-      function goFullscreen() {
+        document.getElementById("codeBlock").classList.remove("hidden");
+        document.getElementById("codeDisplay").textContent = code;
+        setStatus("Waiting for caller to connect...", "waiting");
+        log("Session created: " + code);
+
+        connectWebSocket(code);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    async function connectWebSocket(code) {
+      const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${wsProtocol}//${location.host}/ws?code=${code}&role=agent`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () =>
+        log("Connected to signaling server, waiting for caller...");
+      ws.onclose = () => log("Signaling connection closed");
+      ws.onerror = (e) => log("WebSocket error: " + e.message);
+
+      // IMPORTANT: attach onmessage BEFORE awaiting createPeerConnection().
+      // The server sends "session-info" immediately upon connecting — if
+      // createPeerConnection()'s TURN-credential fetch takes even a
+      // fraction of a second, that message can arrive before onmessage
+      // is attached, and WebSocket does not buffer/replay missed events.
+      // Attaching it first guarantees nothing sent by the server can be
+      // silently dropped. (pc-dependent messages just no-op if pc isn't
+      // ready yet, which in practice never happens before it's needed.)
+      ws.onmessage = async (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "session-info") {
+          pendingExpiresAt = msg.expiresAt;
+          startCountdown(pendingExpiresAt);
+          return;
+        }
+
+        if (!pc) {
+          log("Received " + msg.type + " before peer connection was ready — ignoring");
+          return;
+        }
+
+        if (msg.type === "offer") {
+          log("Received offer from caller");
+          await pc.setRemoteDescription(msg.offer);
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          send({ type: "answer", answer: pc.localDescription });
+          log("Sent answer");
+        } else if (msg.type === "ice-candidate") {
+          try {
+            await pc.addIceCandidate(msg.candidate);
+          } catch (e) {
+            log("Failed to add ICE candidate: " + e.message);
+          }
+        } else if (msg.type === "stop") {
+          log("Caller stopped sharing");
+          resetView("Caller ended the session.", "ended");
+        }
+      };
+
+      await createPeerConnection();
+    }
+
+    async function createPeerConnection() {
+      const iceServers = await getIceServers();
+      pc = new RTCPeerConnection({ iceServers });
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          send({ type: "ice-candidate", candidate: event.candidate });
+        } else {
+          log("ICE gathering complete");
+        }
+      };
+
+      pc.ontrack = (event) => {
+        log("Caller's screen received!");
         const video = document.getElementById("remoteVideo");
-        if (!video.srcObject) return;
+        video.srcObject = event.streams[0];
 
-        const el = document.getElementById("videoWrapper");
-        if (el.requestFullscreen) {
-          el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-          el.webkitRequestFullscreen();
-        } else if (el.mozRequestFullScreen) {
-          el.mozRequestFullScreen();
-        } else if (el.msRequestFullscreen) {
-          el.msRequestFullscreen();
+        video.onpause = () => {
+          if (video.srcObject) video.play().catch(() => { });
+        };
+
+        showCallView();
+        startDurationCounter();
+
+        // Countdown starts here, deliberately — only once the caller has
+        // actually connected and their screen is showing, not from the
+        // moment the session code was generated.
+        if (pendingExpiresAt) {
+          startCountdown(pendingExpiresAt);
         }
+      };
+
+      pc.onconnectionstatechange = () => {
+        log("Connection state: " + pc.connectionState);
+        if (
+          ["disconnected", "failed", "closed"].includes(pc.connectionState)
+        ) {
+          resetView("Caller disconnected.", "ended");
+        }
+      };
+    }
+
+    async function getIceServers() {
+      try {
+        const res = await fetch("/api/turn-credentials");
+        if (!res.ok) throw new Error("bad response");
+        const turnServers = await res.json();
+        log("TURN credentials loaded");
+        return [{ urls: "stun:stun.l.google.com:19302" }, ...turnServers];
+      } catch (e) {
+        log(
+          "Failed to load TURN credentials, falling back to STUN only: " +
+          e.message,
+        );
+        return [{ urls: "stun:stun.l.google.com:19302" }];
+      }
+    }
+
+    function endCall() {
+      log("Ending call");
+      try {
+        send({ type: "stop" });
+      } catch (e) { }
+      resetView("Session ended.", "ended");
+    }
+
+    function resetView(statusText, type) {
+      const video = document.getElementById("remoteVideo");
+      video.onpause = null;
+      video.srcObject = null;
+      setStatus(statusText, type);
+      document.getElementById("codeBlock").classList.add("hidden");
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+      stopDurationCounter();
+      pendingExpiresAt = null;
+
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+      if (ws) {
+        ws.close();
+        ws = null;
       }
 
-      function send(obj) {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify(obj));
-        }
+      showDashboard();
+    }
+
+    function goFullscreen() {
+      const video = document.getElementById("remoteVideo");
+      if (!video.srcObject) return;
+
+      const el = document.getElementById("videoWrapper");
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.mozRequestFullScreen) {
+        el.mozRequestFullScreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
       }
-    </script>
-  </body>
+    }
+
+    function send(obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(obj));
+      }
+    }
+  </script>
+</body>
+
 </html>
